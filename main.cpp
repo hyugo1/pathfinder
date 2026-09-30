@@ -8,6 +8,40 @@
 using Grid = std::vector<std::vector<char>>; //'#' wall, '.' open, 'S' start, 'E' end
 using Position = std::pair<int, int>;// {row, col}
 
+std::string parseLine(const std::string& line) {
+    std::string result;
+    for (size_t i = 0; i < line.size(); ++i) {
+        if (line[i] == '\'') {
+            if (i + 1 < line.size()) {
+                result += line[i + 1];
+                i += 2; // skip 'X'
+            }
+        }
+    }
+    return result;
+}
+
+Grid readFromFile(std::string filename) {
+    std::ifstream file(filename);
+    std::string line;
+    Grid grid;
+
+    while (std::getline(file, line)) {
+        if (line.empty() || line[0] == '@' || line[0] == '-' || line[0] == '+') {
+            if (!line.empty() && (line[0] == '+' || line[0] == '-')) {
+                line = line.substr(1);
+            }
+        }
+        std::string parsed = parseLine(line);
+        if (!parsed.empty()) {
+            std::vector<char> row(parsed.begin(), parsed.end());
+            grid.push_back(row);
+        }
+    }
+
+    return grid;
+}
+
 Position findChar(const Grid& grid, char target) {
     for (int r {0}; r < static_cast<int>(grid.size()); ++r) {
         for (int c {0}; c < static_cast<int>(grid[0].size()); ++c) {
@@ -73,7 +107,6 @@ std::vector<Position> bfs(const Grid& grid, Position start, Position end) {
     return {}; // no path found
 }
 
-
 void printGrid(Position start, Position end, Grid& copy, std::vector<Position>& path) {
     if (!path.empty()) {
         for (const Position& position : path) {
@@ -81,10 +114,22 @@ void printGrid(Position start, Position end, Grid& copy, std::vector<Position>& 
                 copy[position.first][position.second] = '*';
             }
         }
+        const std::string RED = "\033[31m";
+        const std::string GREEN = "\033[32m";
+        const std::string BLUE = "\033[34m";
+        const std::string RESET = "\033[0m";
         
         for (const auto& row : copy) {
             for (char cell : row) {
-                std::cout << cell;
+                if (cell == '*') {
+                    std::cout << RED << cell << RESET;
+                } else if (cell == 'S') {
+                    std::cout << GREEN << cell << RESET;
+                } else if (cell == 'E') {
+                    std::cout << BLUE << cell << RESET;
+                } else {
+                    std::cout << cell;
+                }
             }
             std::cout << '\n';
         }
@@ -94,14 +139,7 @@ void printGrid(Position start, Position end, Grid& copy, std::vector<Position>& 
 }
     
 int main() {
-   Grid grid = {
-        {'S', '.', '#', '.', '.'},
-        {'.', '#', '.', '.', '#'},
-        {'.', '.', '.', '#', '.'},
-        {'#', '#', '.', '.', '.'},
-        {'.', '.', '.', '#', 'E'}
-    };
-    // Grid grid = readFromFile();
+    Grid grid = readFromFile("grids/grid.txt");
 
     Position start = findChar(grid, 'S');
     Position end = findChar(grid, 'E');
