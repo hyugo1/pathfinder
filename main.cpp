@@ -155,6 +155,72 @@ SearchResult iterativeDfs(const Grid& grid, Position start, Position end) {
     return {{}, explored}; // no path found
 }
 
+// Out of all the places I could go next, which one seems closest to the goal while also not being too expensive so far?
+SearchResult aStar(const Grid& grid, Position start, Position end) {
+    // * g(n) → how far I’ve actually moved from start
+    // * h(n) → guess to the goal (Manhattan distance)
+    // * f(n) = g + h → “how promising this path looks”
+    int rowCount = grid.size();
+    int colCount = grid[0].size();
+    
+    std::vector<std::vector<bool>> visited(rowCount, std::vector<bool>(colCount, false));//[[False for _ in range(cols)] for _ in range(rows)]
+    std::vector<std::vector<Position>> cameFrom(rowCount, std::vector<Position>(colCount, {-1, -1})); //INITIALIZE with {-1, -1};
+    std::vector<std::vector<int>> gCost(rowCount, std::vector<int>(colCount, std::numeric_limits<int>::max())); // cost from start to this node
+
+    std::priority_queue<std::pair<int, Position>, std::vector<std::pair<int, Position>>, std::greater<>> pq;//std::greater makes it a minheap.default is maxheap.
+    
+    int hStart = abs(end.first - start.first) + abs(end.second - start.second);
+    pq.push({hStart, start});
+
+    gCost[start.first][start.second] = 0;
+    const std::array<Position, 4> directions {{
+        {-1, 0}, {1, 0}, {0, -1}, {0, 1}
+    }};
+
+    int explored = 0;
+    
+    while (!pq.empty()) {
+        auto [f, current] = pq.top();
+        pq.pop();
+        
+        int currentx = current.first;
+        int currenty = current.second;
+        int endx = end.first;
+        int endy = end.second;
+
+        int hCost = abs(end.first - currentx) + abs(end.second - currenty);
+        if (f > gCost[currentx][currenty] + hCost) {
+            continue; // skip outdated entry
+        }
+        explored++;
+
+        if (current == end) {
+            return {reconstructPath(cameFrom, end), explored};
+        }
+        
+        int costtomove = 1;
+        for (int i = 0; i < 4; ++i) {
+            int nr = currentx + directions[i].first;
+            int nc = currenty + directions[i].second;
+            if (!inBounds(grid, nr, nc) || grid[nr][nc] == '#') {
+                continue;
+            }
+            
+            int tentativeG = gCost[currentx][currenty] + costtomove; // distance from Start node to current node. cheapest way to get from start to current node. 
+            if (tentativeG < gCost[nr][nc]) { // if the new path to neighbor is cheaper than any previous one
+                gCost[nr][nc] = tentativeG; // update the cost to reach this neighbor
+                cameFrom[nr][nc] = current; // update the path to reach this neighbor
+                int hCost = abs(end.first - nr) + abs(end.second - nc); // heuristic cost to end node
+                int fCost = tentativeG + hCost; // fCost = gCost + hCost
+                
+                pq.push({fCost, {nr, nc}}); // push the neighbor with its fCost as priority
+            }
+        }
+    }
+
+    return {}; // no path found
+}
+
 void printGrid(Position start, Position end, Grid& copy, const std::vector<Position>& path) {
     if (!path.empty()) {
         for (const Position& position : path) {
@@ -203,14 +269,27 @@ int main() {
     }
 
     int choice {};
-    std::cout << "Which algorithm do you want to use? (1 for BFS, 2 for DFS): ";
+    std::cout << "Which algorithm do you want to use? "; 
+    for (int i = 1; i <= 3; ++i) {
+        std::cout << i << " for " << (i == 1 ? "BFS" : (i == 2 ? "DFS" : "A*")) << ", ";
+    }
+    std::cout << "\nEnter your choice: ";
     std::cin >> choice;
 
     SearchResult result;
-    if (choice == 1) {
-        result = bfs(grid, start, end);
-    } else {
-        result = iterativeDfs(grid, start, end);
+    switch (choice) {
+        case 1:
+            result = bfs(grid, start, end);
+            break;
+        case 2:
+            result = iterativeDfs(grid, start, end);
+            break;
+        case 3:
+            result = aStar(grid, start, end);
+            break;
+        default:
+            std::cerr << "Invalid choice.\n";
+            return 1;
     }
 
     Grid copy = grid;
