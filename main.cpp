@@ -1,13 +1,23 @@
 #include <iostream>
+#include <SFML/Graphics.hpp>
 #include <vector>
 #include <algorithm>
 #include <array>
 #include <queue>
 #include <fstream>
 #include <stack>
+#include <limits>
 
-using Grid = std::vector<std::vector<char>>; //'#' wall, '.' open, 'S' start, 'E' end
+// using Grid = std::vector<std::vector<char>>; //'#' wall, '.' open, 'S' start, 'E' end
 using Position = std::pair<int, int>;// {row, col}
+
+constexpr int ROWS = 20;
+constexpr int COLS = 20;
+constexpr int CELL_SIZE = 30; // pixels per grid cell
+
+enum class CellType { Open, Wall, Start, End, Path };
+
+using Grid = std::vector<std::vector<CellType>>;
 
 struct SearchResult {
     std::vector<Position> path;
@@ -41,7 +51,16 @@ Grid readFromFile(std::string filename) {
         }
         std::string parsed = parseLine(line);
         if (!parsed.empty()) {
-            std::vector<char> row(parsed.begin(), parsed.end());
+            std::vector<CellType> row;
+            for (char c : parsed) {
+                switch (c) {
+                    case '#': row.push_back(CellType::Wall); break;
+                    case '.': row.push_back(CellType::Open); break;
+                    case 'S': row.push_back(CellType::Start); break;
+                    case 'E': row.push_back(CellType::End); break;
+                    default: row.push_back(CellType::Open);
+                }
+            }
             grid.push_back(row);
         }
     }
@@ -49,7 +68,7 @@ Grid readFromFile(std::string filename) {
     return grid;
 }
 
-Position findChar(const Grid& grid, char target) {
+Position findChar(const Grid& grid, CellType target) {
     for (int r {0}; r < static_cast<int>(grid.size()); ++r) {
         for (int c {0}; c < static_cast<int>(grid[0].size()); ++c) {
             if (grid[r][c] == target) {
@@ -105,7 +124,7 @@ SearchResult bfs(const Grid& grid, Position start, Position end) {
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
-            if (inBounds(grid, nr, nc) && !visited[nr][nc] && grid[nr][nc] != '#') {
+            if (inBounds(grid, nr, nc) && !visited[nr][nc] && grid[nr][nc] != CellType::Wall) {
                 visited[nr][nc] = true;
                 cameFrom[nr][nc] = current;
                 q.push({nr, nc});
@@ -144,7 +163,7 @@ SearchResult iterativeDfs(const Grid& grid, Position start, Position end) {
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
-            if (inBounds(grid, nr, nc) && !visited[nr][nc] && grid[nr][nc] != '#') {
+            if (inBounds(grid, nr, nc) && !visited[nr][nc] && grid[nr][nc] != CellType::Wall) {
                 visited[nr][nc] = true;
                 cameFrom[nr][nc] = current;
                 st.push({nr, nc});
@@ -202,7 +221,7 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
         for (int i = 0; i < 4; ++i) {
             int nr = currentx + directions[i].first;
             int nc = currenty + directions[i].second;
-            if (!inBounds(grid, nr, nc) || grid[nr][nc] == '#') {
+            if (!inBounds(grid, nr, nc) || grid[nr][nc] == CellType::Wall) {
                 continue;
             }
             
@@ -218,14 +237,25 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
         }
     }
 
-    return {}; // no path found
+    return {{}, explored}; // no path found
+}
+
+std::ostream& operator<<(std::ostream& os, CellType cell) {
+    switch (cell) {
+        case CellType::Open:  os << '.'; break;
+        case CellType::Wall:  os << '#'; break;
+        case CellType::Start: os << 'S'; break;
+        case CellType::End:   os << 'E'; break;
+        case CellType::Path:  os << '*'; break;
+    }
+    return os;
 }
 
 void printGrid(Position start, Position end, Grid& copy, const std::vector<Position>& path) {
     if (!path.empty()) {
         for (const Position& position : path) {
-            if (copy[position.first][position.second] != 'S' && copy[position.first][position.second] != 'E') {
-                copy[position.first][position.second] = '*';
+            if (copy[position.first][position.second] != CellType::Start && copy[position.first][position.second] != CellType::End) {
+                copy[position.first][position.second] = CellType::Path; // Mark the path with a special character, e.g., '*'
             }
         }
         const std::string RED = "\033[31m";
@@ -234,12 +264,12 @@ void printGrid(Position start, Position end, Grid& copy, const std::vector<Posit
         const std::string RESET = "\033[0m";
         
         for (const auto& row : copy) {
-            for (char cell : row) {
-                if (cell == '*') {
+            for (CellType cell : row) {
+                if (cell == CellType::Wall) {
                     std::cout << RED << cell << RESET;
-                } else if (cell == 'S') {
+                } else if (cell == CellType::Start) {
                     std::cout << GREEN << cell << RESET;
-                } else if (cell == 'E') {
+                } else if (cell == CellType::End) {
                     std::cout << BLUE << cell << RESET;
                 } else {
                     std::cout << cell;
@@ -251,33 +281,32 @@ void printGrid(Position start, Position end, Grid& copy, const std::vector<Posit
         std::cout << "No path found.\n";
     }
 }
+
+void handleTerminal(Grid& grid, Position& start, Position& end, SearchResult& result) {
+    grid = readFromFile("grids/biggrid.txt");
     
-int main() {
-    Grid grid = readFromFile("grids/biggrid.txt");
- 
     if (grid.empty() || grid[0].empty()) {
         std::cerr << "Invalid or empty grid.\n";
-        return 1;
+        return;
     }
-
-    Position start = findChar(grid, 'S');
-    Position end = findChar(grid, 'E');
-
+    
+    start = findChar(grid, CellType::Start);
+    end = findChar(grid, CellType::End);
+    
     if (start.first == -1 || end.first == -1) {
         std::cerr << "Start or End not found.\n";
-        return 1;
+        return;
     }
-
-    int choice {};
+    
+    int algorithmChoice {};
     std::cout << "Which algorithm do you want to use? "; 
     for (int i = 1; i <= 3; ++i) {
         std::cout << i << " for " << (i == 1 ? "BFS" : (i == 2 ? "DFS" : "A*")) << ", ";
     }
-    std::cout << "\nEnter your choice: ";
-    std::cin >> choice;
-
-    SearchResult result;
-    switch (choice) {
+    std::cout << "\nEnter your algorithmChoice: ";
+    std::cin >> algorithmChoice;
+    
+    switch (algorithmChoice) {
         case 1:
             result = bfs(grid, start, end);
             break;
@@ -289,13 +318,168 @@ int main() {
             break;
         default:
             std::cerr << "Invalid choice.\n";
-            return 1;
+            return;
     }
-
+    
     Grid copy = grid;
     printGrid(start, end, copy, result.path);
-
+    
     std::cout << "Explored: " << result.nodesExplored << " nodes.\n";
     std::cout << "Path Length: " << result.path.size() << ".\n";
+}
+
+
+void handleGUI(Grid& grid, Position& start, Position& end,
+               SearchResult& result, Position& lastClicked,
+               sf::RenderWindow& window) {
+
+    while (window.isOpen()) {
+
+        // --- EVENT LOOP ---
+        while (const std::optional event = window.pollEvent()) {
+
+            if (event->is<sf::Event::Closed>()) {
+                window.close();
+            }
+
+            // --- KEYBOARD ---
+            if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+
+                if ((keyPressed->code == sf::Keyboard::Key::Num1 ||
+                     keyPressed->code == sf::Keyboard::Key::Num2 ||
+                     keyPressed->code == sf::Keyboard::Key::Num3) &&
+                    (start.first == -1 || end.first == -1)) {
+
+                    std::cout << "Set start and end first!\n";
+                    continue;
+                }
+
+                if (keyPressed->code == sf::Keyboard::Key::Escape) {
+                    window.close();
+                }
+                else if (keyPressed->code == sf::Keyboard::Key::Num1) {
+                    std::cout << "Using DFS.\n";
+                    result = iterativeDfs(grid, start, end);
+                }
+                else if (keyPressed->code == sf::Keyboard::Key::Num2) {
+                    std::cout << "Using BFS.\n";
+                    result = bfs(grid, start, end);
+                }
+                else if (keyPressed->code == sf::Keyboard::Key::Num3) {
+                    std::cout << "Using A*.\n";
+                    result = aStar(grid, start, end);
+                }
+                else if (keyPressed->code == sf::Keyboard::Key::C) {
+                    std::cout << "Clearing the entire grid.\n";
+
+                    for (int r = 0; r < ROWS; ++r) {
+                        for (int c = 0; c < COLS; ++c) {
+                            grid[r][c] = CellType::Open;
+                        }
+                    }
+
+                    start = {-1, -1};
+                    end   = {-1, -1};
+                    result.path.clear();
+                }
+            }
+
+            // --- MOUSE ---
+            if (const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>()) {
+
+                int col = mousePressed->position.x / CELL_SIZE;
+                int row = mousePressed->position.y / CELL_SIZE;
+
+                if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
+                    if (mousePressed->button == sf::Mouse::Button::Left) {
+                        // toggle wall
+                        grid[row][col] =
+                            (grid[row][col] == CellType::Wall)
+                            ? CellType::Open
+                            : CellType::Wall;
+                        result.path.clear();
+                    }
+                    else if (mousePressed->button == sf::Mouse::Button::Right) {
+                        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift)) {
+                            // set END
+                            for (auto& r : grid)
+                                for (auto& c : r)
+                                    if (c == CellType::End) c = CellType::Open;
+                            result.path.clear();
+                            end = {row, col};
+                            grid[row][col] = CellType::End;
+                        }
+                        else {
+                            // set START
+                            for (auto& r : grid)
+                                for (auto& c : r)
+                                    if (c == CellType::Start) c = CellType::Open;
+                            result.path.clear();
+                            start = {row, col};
+                            grid[row][col] = CellType::Start;
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- RENDER ---
+        window.clear(sf::Color::White);
+
+        for (int row = 0; row < ROWS; ++row) {
+            for (int col = 0; col < COLS; ++col) {
+
+                sf::RectangleShape cell({CELL_SIZE, CELL_SIZE});
+                cell.setPosition({col * CELL_SIZE * 1.f, row * CELL_SIZE * 1.f});
+
+                // base color
+                switch (grid[row][col]) {
+                    case CellType::Open:  cell.setFillColor(sf::Color::White); break;
+                    case CellType::Wall:  cell.setFillColor(sf::Color::Black); break;
+                    case CellType::Path:  cell.setFillColor(sf::Color::Yellow); break;
+                    case CellType::Start: cell.setFillColor(sf::Color::Green); break;
+                    case CellType::End:   cell.setFillColor(sf::Color::Blue); break;
+                }
+
+                // highlight path
+                for (const auto& p : result.path) {
+                    if (p.first == row && p.second == col) {
+                        cell.setFillColor(sf::Color::Red);
+                        break;
+                    }
+                }
+
+                cell.setOutlineThickness(1);
+                cell.setOutlineColor(sf::Color(200, 200, 200));
+
+                window.draw(cell);
+            }
+        }
+
+        window.display();
+    }
+}
+
+
+int main() {
+    Grid grid(ROWS, std::vector<CellType>(COLS, CellType::Open));
+
+    Position start = {-1, -1};
+    Position end = {-1, -1};
+    SearchResult result = {{}, 0};
+    Position lastClicked = {-1, -1};
+
+    int choice {};
+    std::cout << "Choose mode: 1 for Terminal, 2 for GUI: ";
+    std::cin >> choice;
+    if (choice == 1) {
+        handleTerminal(grid, start, end, result);
+    } else {
+        sf::RenderWindow window(
+            sf::VideoMode({COLS * CELL_SIZE, ROWS * CELL_SIZE}),
+            "Pathfinding Visualizer"
+        );
+        handleGUI(grid, start, end, result, lastClicked, window);
+    }
     return 0;
 }
