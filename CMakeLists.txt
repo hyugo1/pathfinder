@@ -12,4 +12,4 @@ target_link_libraries(main PRIVATE SFML::System SFML::Window SFML::Graphics)
 
 # cmake -S . -B build
 # cmake --build build --clean-first
-# ./build/console
+# ./build/main

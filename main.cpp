@@ -8,7 +8,6 @@
 #include <stack>
 #include <limits>
 
-// using Grid = std::vector<std::vector<char>>; //'#' wall, '.' open, 'S' start, 'E' end
 using Position = std::pair<int, int>;// {row, col}
 
 constexpr int ROWS = 20;
@@ -16,6 +15,9 @@ constexpr int COLS = 20;
 constexpr int CELL_SIZE = 30; // pixels per grid cell
 
 enum class CellType { Open, Wall, Start, End, Path };
+
+enum class Algorithm { None, DFS, BFS, AStar };
+Algorithm currentAlgo = Algorithm::None;
 
 using Grid = std::vector<std::vector<CellType>>;
 
@@ -265,20 +267,44 @@ void printGrid(Position start, Position end, Grid& copy, const std::vector<Posit
         
         for (const auto& row : copy) {
             for (CellType cell : row) {
-                if (cell == CellType::Wall) {
-                    std::cout << RED << cell << RESET;
-                } else if (cell == CellType::Start) {
-                    std::cout << GREEN << cell << RESET;
-                } else if (cell == CellType::End) {
-                    std::cout << BLUE << cell << RESET;
-                } else {
-                    std::cout << cell;
+                switch (cell) {
+                    case CellType::Path:
+                        std::cout << RED << cell << RESET;
+                        break;
+                    case CellType::Start:
+                        std::cout << GREEN << cell << RESET;
+                        break;
+                    case CellType::End:
+                        std::cout << BLUE << cell << RESET;
+                        break;
+                    default:
+                        std::cout << cell;
+                        break;
                 }
             }
             std::cout << '\n';
         }
     } else {
         std::cout << "No path found.\n";
+    }
+}
+
+void rerunAlgorithm(const Grid& grid, Position start, Position end,
+                    Algorithm algo, SearchResult& result) {
+    if (start.first == -1 || end.first == -1) return;
+
+    switch (algo) {
+        case Algorithm::DFS:
+            result = iterativeDfs(grid, start, end);
+            break;
+        case Algorithm::BFS:
+            result = bfs(grid, start, end);
+            break;
+        case Algorithm::AStar:
+            result = aStar(grid, start, end);
+            break;
+        default:
+            break;
     }
 }
 
@@ -332,6 +358,7 @@ void handleTerminal(Grid& grid, Position& start, Position& end, SearchResult& re
 void handleGUI(Grid& grid, Position& start, Position& end,
                SearchResult& result, Position& lastClicked,
                sf::RenderWindow& window) {
+    bool gridChanged = false;
 
     while (window.isOpen()) {
 
@@ -354,33 +381,42 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                     continue;
                 }
 
-                if (keyPressed->code == sf::Keyboard::Key::Escape) {
-                    window.close();
-                }
-                else if (keyPressed->code == sf::Keyboard::Key::Num1) {
-                    std::cout << "Using DFS.\n";
-                    result = iterativeDfs(grid, start, end);
-                }
-                else if (keyPressed->code == sf::Keyboard::Key::Num2) {
-                    std::cout << "Using BFS.\n";
-                    result = bfs(grid, start, end);
-                }
-                else if (keyPressed->code == sf::Keyboard::Key::Num3) {
-                    std::cout << "Using A*.\n";
-                    result = aStar(grid, start, end);
-                }
-                else if (keyPressed->code == sf::Keyboard::Key::C) {
-                    std::cout << "Clearing the entire grid.\n";
-
-                    for (int r = 0; r < ROWS; ++r) {
-                        for (int c = 0; c < COLS; ++c) {
-                            grid[r][c] = CellType::Open;
+                switch (keyPressed->code) {
+                    case sf::Keyboard::Key::Escape:
+                        window.close();
+                        break;
+                    case sf::Keyboard::Key::Num1:
+                        std::cout << "Using DFS.\n";
+                        currentAlgo = Algorithm::DFS;
+                        gridChanged = true;
+                        break;
+                    case sf::Keyboard::Key::Num2:
+                        std::cout << "Using BFS.\n";
+                        currentAlgo = Algorithm::BFS;
+                        gridChanged = true;
+                        break;
+                    case sf::Keyboard::Key::Num3:
+                        std::cout << "Using A*.\n";
+                        currentAlgo = Algorithm::AStar;
+                        gridChanged = true;
+                        break;
+                    case sf::Keyboard::Key::C:
+                        std::cout << "Clearing the entire grid.\n";
+                        gridChanged = true;
+                        for (int r = 0; r < ROWS; ++r) {
+                            for (int c = 0; c < COLS; ++c) {
+                                grid[r][c] = CellType::Open;
+                            }
                         }
-                    }
 
-                    start = {-1, -1};
-                    end   = {-1, -1};
-                    result.path.clear();
+                        start = {-1, -1};
+                        end   = {-1, -1};
+                        result.path.clear();
+                        currentAlgo = Algorithm::None;
+                        break;
+                    default:
+                        std::cout << "Unknown key pressed.\n";
+                        break;
                 }
             }
 
@@ -398,6 +434,7 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                             ? CellType::Open
                             : CellType::Wall;
                         result.path.clear();
+                        gridChanged = true;
                     }
                     else if (mousePressed->button == sf::Mouse::Button::Right) {
                         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift)) {
@@ -408,6 +445,7 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                             result.path.clear();
                             end = {row, col};
                             grid[row][col] = CellType::End;
+                            gridChanged = true;
                         }
                         else {
                             // set START
@@ -417,10 +455,16 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                             result.path.clear();
                             start = {row, col};
                             grid[row][col] = CellType::Start;
+                            gridChanged = true;
                         }
                     }
                 }
             }
+        }
+
+        if (gridChanged) {
+            rerunAlgorithm(grid, start, end, currentAlgo, result);
+            gridChanged = false;
         }
 
         // --- RENDER ---
