@@ -24,7 +24,11 @@ using Grid = std::vector<std::vector<CellType>>;
 struct SearchResult {
     std::vector<Position> path;
     int totalNodesExplored;
-    std::vector<Position> exploredNodes;
+    // animation
+    std::vector<Position> explorationOrder;
+    // final state (optional but useful)
+    std::vector<std::vector<bool>> exploredGrid;
+
 };
 
 std::string parseLine(const std::string& line) {
@@ -103,7 +107,7 @@ std::vector<Position> reconstructPath(const std::vector<std::vector<Position>>& 
 }
 
 SearchResult bfs(const Grid& grid, Position start, Position end) {
-    
+    std::vector<std::vector<bool>> explored(grid.size(), std::vector<bool>(grid[0].size(), false)); // needed for animation to show explored nodes
     std::vector<std::vector<bool>> visited(grid.size(), std::vector<bool>(grid[0].size(), false));
     std::vector<std::vector<Position>> cameFrom(grid.size(), std::vector<Position>(grid[0].size(), {-1, -1}));
 
@@ -111,7 +115,7 @@ SearchResult bfs(const Grid& grid, Position start, Position end) {
     q.push(start);
     visited[start.first][start.second] = true;
     int exploredCount = 0;
-    std::vector<Position> exploreNodes;
+    std::vector<Position> explorationOrder;
 
     const std::array<Position, 4> directions {{
         {-1, 0}, {1, 0}, {0, -1}, {0, 1}
@@ -120,11 +124,12 @@ SearchResult bfs(const Grid& grid, Position start, Position end) {
     while (!q.empty()) {
         Position current = q.front();
         exploredCount++;
-        exploreNodes.push_back(current);
+        explored[current.first][current.second] = true;
+        explorationOrder.push_back(current);
         q.pop();
 
         if (current == end) {
-            return {reconstructPath(cameFrom, end), exploredCount, exploreNodes};
+            return {reconstructPath(cameFrom, end), exploredCount, explorationOrder, explored};
         }
 
         for (const Position& direction : directions) {
@@ -139,10 +144,11 @@ SearchResult bfs(const Grid& grid, Position start, Position end) {
         }
     }
 
-    return {{}, exploredCount, {}}; // no path found
+    return {{}, exploredCount, {}, explored}; // no path found
 }
 
 SearchResult iterativeDfs(const Grid& grid, Position start, Position end) {
+    std::vector<std::vector<bool>> explored(grid.size(), std::vector<bool>(grid[0].size(), false)); // needed for animation to show explored nodes
     std::vector<std::vector<bool>> visited(grid.size(), std::vector<bool>(grid[0].size(), false));
     std::vector<std::vector<Position>> cameFrom(grid.size(), std::vector<Position>(grid[0].size(), {-1, -1}));
 
@@ -150,7 +156,7 @@ SearchResult iterativeDfs(const Grid& grid, Position start, Position end) {
     st.push(start);
     visited[start.first][start.second] = true;
     int exploredCount = 0;
-    std::vector<Position> exploreNodes;
+    std::vector<Position> explorationOrder;
 
     const std::array<Position, 4> directions {{
         {-1, 0}, {1, 0}, {0, -1}, {0, 1}
@@ -160,9 +166,10 @@ SearchResult iterativeDfs(const Grid& grid, Position start, Position end) {
         Position current = st.top();
         st.pop();
         exploredCount++;
-        exploreNodes.push_back(current);
+        explorationOrder.push_back(current);
+        explored[current.first][current.second] = true;
         if (current == end) {
-            return {reconstructPath(cameFrom, end), exploredCount, exploreNodes};
+            return {reconstructPath(cameFrom, end), exploredCount, explorationOrder, explored};
         }
 
         // backtrack in reverse order to maintain the original order of exploration
@@ -179,7 +186,7 @@ SearchResult iterativeDfs(const Grid& grid, Position start, Position end) {
         }
     }
 
-    return {{}, exploredCount, {}}; // no path found
+    return {{}, exploredCount, {}, explored}; // no path found
 }
 
 // Out of all the places I could go next, which one seems closest to the goal while also not being too expensive so far?
@@ -192,6 +199,7 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
     
     std::vector<std::vector<bool>> visited(rowCount, std::vector<bool>(colCount, false));//[[False for _ in range(cols)] for _ in range(rows)]
     std::vector<std::vector<Position>> cameFrom(rowCount, std::vector<Position>(colCount, {-1, -1}));
+    std::vector<std::vector<bool>> explored(grid.size(), std::vector<bool>(grid[0].size(), false)); // needed for animation to show explored nodes
     std::vector<std::vector<int>> gCost(rowCount, std::vector<int>(colCount, std::numeric_limits<int>::max())); // cost from start to this node
 
     std::priority_queue<std::pair<int, Position>, std::vector<std::pair<int, Position>>, std::greater<>> pq;//std::greater makes it a minheap.default is maxheap.
@@ -205,11 +213,12 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
     }};
 
     int exploredCount = 0;
-    std::vector<Position> exploreNodes;
+    std::vector<Position> explorationOrder;
     
     while (!pq.empty()) {
         auto [f, current] = pq.top();
         pq.pop();
+        explored[current.first][current.second] = true;
         
         int currentx = current.first;
         int currenty = current.second;
@@ -221,10 +230,10 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
             continue; // skip outdated entry
         }
         exploredCount++;
-        exploreNodes.push_back(current);
+        explorationOrder.push_back(current);
 
         if (current == end) {
-            return {reconstructPath(cameFrom, end), exploredCount, exploreNodes};
+            return {reconstructPath(cameFrom, end), exploredCount, explorationOrder, explored};
         }
         
         int costtomove = 1;
@@ -247,7 +256,7 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
         }
     }
 
-    return {{}, exploredCount, {}}; // no path found
+    return {{}, exploredCount, {}, explored}; // no path found
 }
 
 std::ostream& operator<<(std::ostream& os, CellType cell) {
@@ -366,7 +375,7 @@ void handleTerminal(Grid& grid, Position& start, Position& end, SearchResult& re
     }
     
     Grid copy = grid;
-    printGrid(start, end, copy, result.path, result.exploredNodes);
+    printGrid(start, end, copy, result.path, result.explorationOrder);
     
     std::cout << "Explored: " << result.totalNodesExplored << " nodes.\n";
     std::cout << "Path Length: " << result.path.size() << ".\n";
@@ -510,6 +519,17 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                         break;
                     }
                 }
+
+
+                for (const auto& p : result.explorationOrder) { // animation of explored nodes
+                    if (result.exploredGrid[p.first][p.second] == true) {
+                        if (p.first == row && p.second == col) {
+                            cell.setFillColor(sf::Color(128, 128, 128)); // grayish blue
+                            break;
+                        }
+                    }
+                }
+
                 // highlight path
                 for (const auto& p : result.path) {
                     if (p.first == row && p.second == col) {
@@ -535,7 +555,8 @@ int main() {
 
     Position start = {-1, -1};
     Position end = {-1, -1};
-    SearchResult result = {{}, 0, {}};
+    // SearchResult result = {{}, 0, {}, {}};
+    SearchResult result;
     Position lastClicked = {-1, -1};
 
     int choice {};
