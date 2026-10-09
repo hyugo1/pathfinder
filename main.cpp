@@ -7,6 +7,7 @@
 #include <fstream>
 #include <stack>
 #include <limits>
+#include <chrono>
 
 using Position = std::pair<int, int>;// {row, col}
 
@@ -23,10 +24,9 @@ using Grid = std::vector<std::vector<CellType>>;
 
 struct SearchResult {
     std::vector<Position> path;
-    int totalNodesExplored;
+    int totalNodesExplored {0};
     // animation
     std::vector<Position> explorationOrder;
-    // final state (optional but useful)
     std::vector<std::vector<bool>> exploredGrid;
 
 };
@@ -146,7 +146,7 @@ SearchResult bfs(const Grid& grid, Position start, Position end) {
         }
     }
 
-    return {{}, exploredCount, {}, explored}; // no path found
+    return {{}, exploredCount, explorationOrder, explored}; // no path found
 }
 
 SearchResult iterativeDfs(const Grid& grid, Position start, Position end) {
@@ -188,7 +188,7 @@ SearchResult iterativeDfs(const Grid& grid, Position start, Position end) {
         }
     }
 
-    return {{}, exploredCount, {}, explored}; // no path found
+    return {{}, exploredCount, explorationOrder, explored}; // no path found
 }
 
 // Out of all the places I could go next, which one seems closest to the goal while also not being too expensive so far?
@@ -258,7 +258,7 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
         }
     }
 
-    return {{}, exploredCount, {}, explored}; // no path found
+    return {{}, exploredCount, explorationOrder, explored}; // no path found
 }
 
 std::ostream& operator<<(std::ostream& os, CellType cell) {
@@ -337,6 +337,19 @@ void rerunAlgorithm(const Grid& grid, Position start, Position end,
     }
 }
 
+std::string algoName(const Algorithm& algo) {
+    switch (algo) {
+        case Algorithm::DFS:
+            return "DFS";
+        case Algorithm::BFS:
+            return "BFS";
+        case Algorithm::AStar:
+            return "A*";
+        default:
+            return "None";
+    }
+}
+
 void handleTerminal(Grid& grid, Position& start, Position& end, SearchResult& result) {
     grid = readFromFile("grids/biggrid.txt");
     
@@ -388,9 +401,11 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                SearchResult& result, Position& lastClicked,
                sf::RenderWindow& window) {
     bool gridChanged = false;
+    bool statsRequested = false;
     int animationStep = 0;
     sf::Clock clock;
     std::vector<std::vector<bool>> animatedGrid(ROWS, std::vector<bool>(COLS, false));
+    std::vector<bool> animatedPath(ROWS * COLS, false);
 
     while (window.isOpen()) {
 
@@ -418,23 +433,27 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                         window.close();
                         break;
                     case sf::Keyboard::Key::Num1:
-                        std::cout << "Using DFS.\n";
+                        std::cout << "Using " << algoName(Algorithm::DFS) << ".\n";
                         currentAlgo = Algorithm::DFS;
                         gridChanged = true;
+                        statsRequested = true;
                         break;
                     case sf::Keyboard::Key::Num2:
-                        std::cout << "Using BFS.\n";
+                        std::cout << "Using " << algoName(Algorithm::BFS) << ".\n";
                         currentAlgo = Algorithm::BFS;
                         gridChanged = true;
+                        statsRequested = true;
                         break;
                     case sf::Keyboard::Key::Num3:
-                        std::cout << "Using A*.\n";
+                        std::cout << "Using " << algoName(Algorithm::AStar) << ".\n";
                         currentAlgo = Algorithm::AStar;
                         gridChanged = true;
+                        statsRequested = true;
                         break;
                     case sf::Keyboard::Key::C:
                         std::cout << "Clearing the entire grid.\n";
                         gridChanged = true;
+                        statsRequested = false;
                         for (int r = 0; r < ROWS; ++r) {
                             for (int c = 0; c < COLS; ++c) {
                                 grid[r][c] = CellType::Open;
@@ -444,6 +463,7 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                         start = {-1, -1};
                         end   = {-1, -1};
                         result.path.clear();
+                        result.explorationOrder = {};
                         currentAlgo = Algorithm::None;
                         break;
                     default:
@@ -466,8 +486,10 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                             ? CellType::Open
                             : CellType::Wall;
                         result.path.clear();
+                        result.explorationOrder.clear();
                         result.exploredGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
                         gridChanged = true;
+                        statsRequested = false;
                         animationStep = 0;
                         animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
                     }
@@ -482,6 +504,7 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                             end = {row, col};
                             grid[row][col] = CellType::End;
                             gridChanged = true;
+                            statsRequested = false;
                             animationStep = 0;
                             animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
                         }
@@ -495,6 +518,7 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                             start = {row, col};
                             grid[row][col] = CellType::Start;
                             gridChanged = true;
+                            statsRequested = false;
                             animationStep = 0;
                             animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
                         }
@@ -504,9 +528,30 @@ void handleGUI(Grid& grid, Position& start, Position& end,
         }
 
         if (gridChanged) {
+            auto algoStart = std::chrono::steady_clock::now();
             rerunAlgorithm(grid, start, end, currentAlgo, result);
+            auto algoEnd = std::chrono::steady_clock::now();
+            double executionTime =
+                std::chrono::duration<double, std::milli>(
+                    algoEnd - algoStart
+                ).count();
+
+            if (statsRequested && currentAlgo != Algorithm::None) {
+                std::cout << "\n--- Performance Stats ---\n";
+                std::cout << "Algorithm: " << algoName(currentAlgo) << "\n";
+                std::cout << "Path length: "
+                        << result.path.size() << "\n";
+                std::cout << "Execution time: "
+                        << executionTime << " ms\n";
+                std::cout << "Total nodes explored: "
+                    << result.totalNodesExplored << "\n";
+            }
+
             animationStep = 0;
-            animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
+            animatedGrid = std::vector<std::vector<bool>>(
+                ROWS, std::vector<bool>(COLS, false)
+            );
+            animatedPath = std::vector<bool>(ROWS * COLS, false);
             clock.restart();
             gridChanged = false;
         }
@@ -515,6 +560,16 @@ void handleGUI(Grid& grid, Position& start, Position& end,
             //only reveal a new cell every, say, 10-20 milliseconds, so a human can actually perceive the expansion.
             if (clock.getElapsedTime().asMilliseconds() > 10) {
                 animatedGrid[result.explorationOrder[animationStep].first][result.explorationOrder[animationStep].second] = true;
+                animationStep++;
+                clock.restart();
+            }
+        }
+
+        if (animationStep >= static_cast<int>(result.explorationOrder.size()) &&
+            animationStep < static_cast<int>(result.explorationOrder.size() + result.path.size())) {
+            if (clock.getElapsedTime().asMilliseconds() > 10) {
+                int pathIndex = animationStep - result.explorationOrder.size();
+                animatedPath[result.path[pathIndex].first * COLS + result.path[pathIndex].second] = true;
                 animationStep++;
                 clock.restart();
             }
@@ -539,16 +594,12 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                     case CellType::End:   cell.setFillColor(sf::Color::Blue); break;
                 }
 
-                if (animatedGrid[row][col]) {
+                if (animatedGrid[row][col] && grid[row][col] != CellType::Start && grid[row][col] != CellType::End) {
                     cell.setFillColor(sf::Color::Cyan);
                 }
                 
-                // highlight path
-                for (const auto& p : result.path) {
-                    if (p.first == row && p.second == col) {
-                        cell.setFillColor(sf::Color::Red);
-                        break;
-                    }
+                if (animatedPath[row * COLS + col] && grid[row][col] != CellType::Start && grid[row][col] != CellType::End) {
+                    cell.setFillColor(sf::Color::Red);
                 }
 
                 cell.setOutlineThickness(1);
