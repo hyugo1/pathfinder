@@ -93,6 +93,7 @@ bool inBounds(const Grid& grid, int row, int col) {
            col >= 0 && col < static_cast<int>(grid[0].size());
 }
 
+// cameFrom means which cell did I come from to reach this cell
 std::vector<Position> reconstructPath(const std::vector<std::vector<Position>>& cameFrom, Position end) {
     Position current = end;
     std::vector<Position> path;
@@ -138,6 +139,7 @@ SearchResult bfs(const Grid& grid, Position start, Position end) {
 
             if (inBounds(grid, nr, nc) && !visited[nr][nc] && grid[nr][nc] != CellType::Wall) {
                 visited[nr][nc] = true;
+                // to get from this place, we came from the current
                 cameFrom[nr][nc] = current;
                 q.push({nr, nc});
             }
@@ -218,7 +220,6 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
     while (!pq.empty()) {
         auto [f, current] = pq.top();
         pq.pop();
-        explored[current.first][current.second] = true;
         
         int currentx = current.first;
         int currenty = current.second;
@@ -229,9 +230,10 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
         if (f > gCost[currentx][currenty] + hCost) {
             continue; // skip outdated entry
         }
+        explored[current.first][current.second] = true;
         exploredCount++;
         explorationOrder.push_back(current);
-
+        
         if (current == end) {
             return {reconstructPath(cameFrom, end), exploredCount, explorationOrder, explored};
         }
@@ -386,6 +388,9 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                SearchResult& result, Position& lastClicked,
                sf::RenderWindow& window) {
     bool gridChanged = false;
+    int animationStep = 0;
+    sf::Clock clock;
+    std::vector<std::vector<bool>> animatedGrid(ROWS, std::vector<bool>(COLS, false));
 
     while (window.isOpen()) {
 
@@ -461,7 +466,10 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                             ? CellType::Open
                             : CellType::Wall;
                         result.path.clear();
+                        result.exploredGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
                         gridChanged = true;
+                        animationStep = 0;
+                        animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
                     }
                     else if (mousePressed->button == sf::Mouse::Button::Right) {
                         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift)) {
@@ -470,9 +478,12 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                                 for (auto& c : r)
                                     if (c == CellType::End) c = CellType::Open;
                             result.path.clear();
+                            result.exploredGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
                             end = {row, col};
                             grid[row][col] = CellType::End;
                             gridChanged = true;
+                            animationStep = 0;
+                            animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
                         }
                         else {
                             // set START
@@ -480,9 +491,12 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                                 for (auto& c : r)
                                     if (c == CellType::Start) c = CellType::Open;
                             result.path.clear();
+                            result.exploredGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
                             start = {row, col};
                             grid[row][col] = CellType::Start;
                             gridChanged = true;
+                            animationStep = 0;
+                            animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
                         }
                     }
                 }
@@ -491,7 +505,19 @@ void handleGUI(Grid& grid, Position& start, Position& end,
 
         if (gridChanged) {
             rerunAlgorithm(grid, start, end, currentAlgo, result);
+            animationStep = 0;
+            animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
+            clock.restart();
             gridChanged = false;
+        }
+
+        if (animationStep < static_cast<int>(result.explorationOrder.size())) {
+            //only reveal a new cell every, say, 10-20 milliseconds, so a human can actually perceive the expansion.
+            if (clock.getElapsedTime().asMilliseconds() > 10) {
+                animatedGrid[result.explorationOrder[animationStep].first][result.explorationOrder[animationStep].second] = true;
+                animationStep++;
+                clock.restart();
+            }
         }
 
         // --- RENDER ---
@@ -513,23 +539,10 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                     case CellType::End:   cell.setFillColor(sf::Color::Blue); break;
                 }
 
-                for (const auto& p : result.exploredNodes) {
-                    if (p.first == row && p.second == col) {
-                        cell.setFillColor(sf::Color(173, 216, 230)); // light blue
-                        break;
-                    }
+                if (animatedGrid[row][col]) {
+                    cell.setFillColor(sf::Color::Cyan);
                 }
-
-
-                for (const auto& p : result.explorationOrder) { // animation of explored nodes
-                    if (result.exploredGrid[p.first][p.second] == true) {
-                        if (p.first == row && p.second == col) {
-                            cell.setFillColor(sf::Color(128, 128, 128)); // grayish blue
-                            break;
-                        }
-                    }
-                }
-
+                
                 // highlight path
                 for (const auto& p : result.path) {
                     if (p.first == row && p.second == col) {
