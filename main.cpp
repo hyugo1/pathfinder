@@ -27,8 +27,6 @@ struct SearchResult {
     int totalNodesExplored {0};
     // animation
     std::vector<Position> explorationOrder;
-    std::vector<std::vector<bool>> exploredGrid;
-
 };
 
 std::string parseLine(const std::string& line) {
@@ -108,7 +106,6 @@ std::vector<Position> reconstructPath(const std::vector<std::vector<Position>>& 
 }
 
 SearchResult bfs(const Grid& grid, Position start, Position end) {
-    std::vector<std::vector<bool>> explored(grid.size(), std::vector<bool>(grid[0].size(), false)); // needed for animation to show explored nodes
     std::vector<std::vector<bool>> visited(grid.size(), std::vector<bool>(grid[0].size(), false));
     std::vector<std::vector<Position>> cameFrom(grid.size(), std::vector<Position>(grid[0].size(), {-1, -1}));
 
@@ -125,12 +122,11 @@ SearchResult bfs(const Grid& grid, Position start, Position end) {
     while (!q.empty()) {
         Position current = q.front();
         exploredCount++;
-        explored[current.first][current.second] = true;
         explorationOrder.push_back(current);
         q.pop();
 
         if (current == end) {
-            return {reconstructPath(cameFrom, end), exploredCount, explorationOrder, explored};
+            return {reconstructPath(cameFrom, end), exploredCount, explorationOrder};
         }
 
         for (const Position& direction : directions) {
@@ -146,11 +142,10 @@ SearchResult bfs(const Grid& grid, Position start, Position end) {
         }
     }
 
-    return {{}, exploredCount, explorationOrder, explored}; // no path found
+    return {{}, exploredCount, explorationOrder}; // no path found
 }
 
 SearchResult iterativeDfs(const Grid& grid, Position start, Position end) {
-    std::vector<std::vector<bool>> explored(grid.size(), std::vector<bool>(grid[0].size(), false)); // needed for animation to show explored nodes
     std::vector<std::vector<bool>> visited(grid.size(), std::vector<bool>(grid[0].size(), false));
     std::vector<std::vector<Position>> cameFrom(grid.size(), std::vector<Position>(grid[0].size(), {-1, -1}));
 
@@ -169,9 +164,8 @@ SearchResult iterativeDfs(const Grid& grid, Position start, Position end) {
         st.pop();
         exploredCount++;
         explorationOrder.push_back(current);
-        explored[current.first][current.second] = true;
         if (current == end) {
-            return {reconstructPath(cameFrom, end), exploredCount, explorationOrder, explored};
+            return {reconstructPath(cameFrom, end), exploredCount, explorationOrder};
         }
 
         // backtrack in reverse order to maintain the original order of exploration
@@ -188,7 +182,7 @@ SearchResult iterativeDfs(const Grid& grid, Position start, Position end) {
         }
     }
 
-    return {{}, exploredCount, explorationOrder, explored}; // no path found
+    return {{}, exploredCount, explorationOrder}; // no path found
 }
 
 // Out of all the places I could go next, which one seems closest to the goal while also not being too expensive so far?
@@ -201,7 +195,6 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
     
     std::vector<std::vector<bool>> visited(rowCount, std::vector<bool>(colCount, false));//[[False for _ in range(cols)] for _ in range(rows)]
     std::vector<std::vector<Position>> cameFrom(rowCount, std::vector<Position>(colCount, {-1, -1}));
-    std::vector<std::vector<bool>> explored(grid.size(), std::vector<bool>(grid[0].size(), false)); // needed for animation to show explored nodes
     std::vector<std::vector<int>> gCost(rowCount, std::vector<int>(colCount, std::numeric_limits<int>::max())); // cost from start to this node
 
     std::priority_queue<std::pair<int, Position>, std::vector<std::pair<int, Position>>, std::greater<>> pq;//std::greater makes it a minheap.default is maxheap.
@@ -230,12 +223,11 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
         if (f > gCost[currentx][currenty] + hCost) {
             continue; // skip outdated entry
         }
-        explored[current.first][current.second] = true;
         exploredCount++;
         explorationOrder.push_back(current);
         
         if (current == end) {
-            return {reconstructPath(cameFrom, end), exploredCount, explorationOrder, explored};
+            return {reconstructPath(cameFrom, end), exploredCount, explorationOrder};
         }
         
         int costtomove = 1;
@@ -258,7 +250,7 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
         }
     }
 
-    return {{}, exploredCount, explorationOrder, explored}; // no path found
+    return {{}, exploredCount, explorationOrder}; // no path found
 }
 
 std::ostream& operator<<(std::ostream& os, CellType cell) {
@@ -349,6 +341,27 @@ std::string algoName(const Algorithm& algo) {
             return "None";
     }
 }
+void resetResults(SearchResult& result) {
+    result.path.clear();
+    result.explorationOrder.clear();
+    result.totalNodesExplored = 0;
+}
+
+void resetAnimationStates(std::vector<std::vector<bool>>& animatedGrid, std::vector<bool>& animatedPath, int& animationStep) {
+    animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
+    animatedPath = std::vector<bool>(ROWS * COLS, false);
+    animationStep = 0;
+}
+
+void resetSearch(SearchResult& result,
+                 std::vector<std::vector<bool>>& animatedGrid,
+                 std::vector<bool>& animatedPath,
+                 int& animationStep) {
+
+    resetResults(result);
+    resetAnimationStates(animatedGrid, animatedPath, animationStep);
+}
+
 
 void handleTerminal(Grid& grid, Position& start, Position& end, SearchResult& result) {
     grid = readFromFile("grids/biggrid.txt");
@@ -398,7 +411,7 @@ void handleTerminal(Grid& grid, Position& start, Position& end, SearchResult& re
 
 
 void handleGUI(Grid& grid, Position& start, Position& end,
-               SearchResult& result, Position& lastClicked,
+               SearchResult& result,
                sf::RenderWindow& window) {
     bool gridChanged = false;
     bool statsRequested = false;
@@ -462,9 +475,11 @@ void handleGUI(Grid& grid, Position& start, Position& end,
 
                         start = {-1, -1};
                         end   = {-1, -1};
-                        result.path.clear();
-                        result.explorationOrder = {};
+                        resetSearch(result, animatedGrid, animatedPath, animationStep);
                         currentAlgo = Algorithm::None;
+                        break;
+                    case sf::Keyboard::Key::LShift:
+                        std::cout << "Hold LShift and right click to set the END position.\n";
                         break;
                     default:
                         std::cout << "Unknown key pressed.\n";
@@ -485,13 +500,10 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                             (grid[row][col] == CellType::Wall)
                             ? CellType::Open
                             : CellType::Wall;
-                        result.path.clear();
-                        result.explorationOrder.clear();
-                        result.exploredGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
-                        gridChanged = true;
                         statsRequested = false;
-                        animationStep = 0;
-                        animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
+                        gridChanged = true;
+                        
+                        resetSearch(result, animatedGrid, animatedPath, animationStep);
                     }
                     else if (mousePressed->button == sf::Mouse::Button::Right) {
                         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift)) {
@@ -499,28 +511,26 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                             for (auto& r : grid)
                                 for (auto& c : r)
                                     if (c == CellType::End) c = CellType::Open;
-                            result.path.clear();
-                            result.exploredGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
+                            
+                            
+                            statsRequested = false;
+                            gridChanged = true;
                             end = {row, col};
                             grid[row][col] = CellType::End;
-                            gridChanged = true;
-                            statsRequested = false;
-                            animationStep = 0;
-                            animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
+
+                            resetSearch(result, animatedGrid, animatedPath, animationStep);
                         }
                         else {
                             // set START
                             for (auto& r : grid)
                                 for (auto& c : r)
                                     if (c == CellType::Start) c = CellType::Open;
-                            result.path.clear();
-                            result.exploredGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
                             start = {row, col};
                             grid[row][col] = CellType::Start;
                             gridChanged = true;
                             statsRequested = false;
-                            animationStep = 0;
-                            animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
+
+                            resetSearch(result, animatedGrid, animatedPath, animationStep);
                         }
                     }
                 }
@@ -547,11 +557,7 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                     << result.totalNodesExplored << "\n";
             }
 
-            animationStep = 0;
-            animatedGrid = std::vector<std::vector<bool>>(
-                ROWS, std::vector<bool>(COLS, false)
-            );
-            animatedPath = std::vector<bool>(ROWS * COLS, false);
+            resetAnimationStates(animatedGrid, animatedPath, animationStep);
             clock.restart();
             gridChanged = false;
         }
@@ -619,9 +625,7 @@ int main() {
 
     Position start = {-1, -1};
     Position end = {-1, -1};
-    // SearchResult result = {{}, 0, {}, {}};
     SearchResult result;
-    Position lastClicked = {-1, -1};
 
     int choice {};
     std::cout << "Choose mode: 1 for Terminal, 2 for GUI: ";
@@ -633,7 +637,7 @@ int main() {
             sf::VideoMode({COLS * CELL_SIZE, ROWS * CELL_SIZE}),
             "Pathfinding Visualizer"
         );
-        handleGUI(grid, start, end, result, lastClicked, window);
+        handleGUI(grid, start, end, result, window);
     }
     return 0;
 }
