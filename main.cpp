@@ -29,6 +29,27 @@ struct SearchResult {
     std::vector<Position> explorationOrder;
 };
 
+struct SearchState {
+    std::vector<std::vector<Position>> cameFrom;
+    int exploredCount {0};
+    std::vector<Position> explorationOrder;
+};
+
+SearchState createSearchState(const Grid& grid) {
+    return {
+        std::vector<std::vector<Position>>(grid.size(), std::vector<Position>(grid[0].size(), {-1, -1})),
+        0,
+        {}
+    };
+}
+
+constexpr std::array<Position, 4> DIRECTIONS {{
+    {-1, 0}, // Up
+    { 1, 0}, // Down
+    { 0,-1}, // Left
+    { 0, 1}  // Right
+}};
+
 std::string parseLine(const std::string& line) {
     std::string result;
     for (size_t i = 0; i < line.size(); ++i) {
@@ -106,83 +127,71 @@ std::vector<Position> reconstructPath(const std::vector<std::vector<Position>>& 
 }
 
 SearchResult bfs(const Grid& grid, Position start, Position end) {
-    std::vector<std::vector<bool>> visited(grid.size(), std::vector<bool>(grid[0].size(), false));
-    std::vector<std::vector<Position>> cameFrom(grid.size(), std::vector<Position>(grid[0].size(), {-1, -1}));
+    SearchState state = createSearchState(grid);
+    std::vector<std::vector<bool>> visited(grid.size(), std::vector<bool>(grid[0].size(), false)); //[[False for _ in range(cols)] for _ in range(rows)]
 
     std::queue<Position> q;
     q.push(start);
     visited[start.first][start.second] = true;
-    int exploredCount = 0;
-    std::vector<Position> explorationOrder;
-
-    const std::array<Position, 4> directions {{
-        {-1, 0}, {1, 0}, {0, -1}, {0, 1}
-    }};
 
     while (!q.empty()) {
         Position current = q.front();
-        exploredCount++;
-        explorationOrder.push_back(current);
+        state.exploredCount++;
+        state.explorationOrder.push_back(current);
         q.pop();
 
         if (current == end) {
-            return {reconstructPath(cameFrom, end), exploredCount, explorationOrder};
+            return {reconstructPath(state.cameFrom, end), state.exploredCount, state.explorationOrder};
         }
 
-        for (const Position& direction : directions) {
+        for (const Position& direction : DIRECTIONS) {
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
             if (inBounds(grid, nr, nc) && !visited[nr][nc] && grid[nr][nc] != CellType::Wall) {
                 visited[nr][nc] = true;
                 // to get from this place, we came from the current
-                cameFrom[nr][nc] = current;
+                state.cameFrom[nr][nc] = current;
                 q.push({nr, nc});
             }
         }
     }
 
-    return {{}, exploredCount, explorationOrder}; // no path found
+    return {{}, state.exploredCount, state.explorationOrder}; // no path found
 }
 
 SearchResult iterativeDfs(const Grid& grid, Position start, Position end) {
-    std::vector<std::vector<bool>> visited(grid.size(), std::vector<bool>(grid[0].size(), false));
-    std::vector<std::vector<Position>> cameFrom(grid.size(), std::vector<Position>(grid[0].size(), {-1, -1}));
+    SearchState state = createSearchState(grid);
+    std::vector<std::vector<bool>> visited(grid.size(), std::vector<bool>(grid[0].size(), false)); //[[False for _ in range(cols)] for _ in range(rows)]
 
     std::stack<Position> st;
     st.push(start);
     visited[start.first][start.second] = true;
-    int exploredCount = 0;
-    std::vector<Position> explorationOrder;
-
-    const std::array<Position, 4> directions {{
-        {-1, 0}, {1, 0}, {0, -1}, {0, 1}
-    }};
 
     while (!st.empty()) {
         Position current = st.top();
         st.pop();
-        exploredCount++;
-        explorationOrder.push_back(current);
+        state.exploredCount++;
+        state.explorationOrder.push_back(current);
         if (current == end) {
-            return {reconstructPath(cameFrom, end), exploredCount, explorationOrder};
+            return {reconstructPath(state.cameFrom, end), state.exploredCount, state.explorationOrder};
         }
 
         // backtrack in reverse order to maintain the original order of exploration
-        for (int i = directions.size() - 1; i >= 0; --i) {
-            const Position& direction = directions[i];
+        for (int i = DIRECTIONS.size() - 1; i >= 0; --i) {
+            const Position& direction = DIRECTIONS[i];
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
             if (inBounds(grid, nr, nc) && !visited[nr][nc] && grid[nr][nc] != CellType::Wall) {
                 visited[nr][nc] = true;
-                cameFrom[nr][nc] = current;
+                state.cameFrom[nr][nc] = current;
                 st.push({nr, nc});
             }
         }
     }
 
-    return {{}, exploredCount, explorationOrder}; // no path found
+    return {{}, state.exploredCount, state.explorationOrder}; // no path found
 }
 
 // Out of all the places I could go next, which one seems closest to the goal while also not being too expensive so far?
@@ -193,8 +202,9 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
     int rowCount = grid.size();
     int colCount = grid[0].size();
     
-    std::vector<std::vector<bool>> visited(rowCount, std::vector<bool>(colCount, false));//[[False for _ in range(cols)] for _ in range(rows)]
-    std::vector<std::vector<Position>> cameFrom(rowCount, std::vector<Position>(colCount, {-1, -1}));
+    SearchState state = createSearchState(grid);
+    state.exploredCount = 0;
+    state.explorationOrder.clear();
     std::vector<std::vector<int>> gCost(rowCount, std::vector<int>(colCount, std::numeric_limits<int>::max())); // cost from start to this node
 
     std::priority_queue<std::pair<int, Position>, std::vector<std::pair<int, Position>>, std::greater<>> pq;//std::greater makes it a minheap.default is maxheap.
@@ -203,37 +213,28 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
     pq.push({hStart, start});
 
     gCost[start.first][start.second] = 0;
-    const std::array<Position, 4> directions {{
-        {-1, 0}, {1, 0}, {0, -1}, {0, 1}
-    }};
 
-    int exploredCount = 0;
-    std::vector<Position> explorationOrder;
-    
     while (!pq.empty()) {
         auto [f, current] = pq.top();
         pq.pop();
         
         int currentx = current.first;
         int currenty = current.second;
-        int endx = end.first;
-        int endy = end.second;
-
         int hCost = abs(end.first - currentx) + abs(end.second - currenty);
         if (f > gCost[currentx][currenty] + hCost) {
             continue; // skip outdated entry
         }
-        exploredCount++;
-        explorationOrder.push_back(current);
+        state.exploredCount++;
+        state.explorationOrder.push_back(current);
         
         if (current == end) {
-            return {reconstructPath(cameFrom, end), exploredCount, explorationOrder};
+            return {reconstructPath(state.cameFrom, end), state.exploredCount, state.explorationOrder};
         }
         
         int costtomove = 1;
         for (int i = 0; i < 4; ++i) {
-            int nr = currentx + directions[i].first;
-            int nc = currenty + directions[i].second;
+            int nr = currentx + DIRECTIONS[i].first;
+            int nc = currenty + DIRECTIONS[i].second;
             if (!inBounds(grid, nr, nc) || grid[nr][nc] == CellType::Wall) {
                 continue;
             }
@@ -241,7 +242,7 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
             int tentativeG = gCost[currentx][currenty] + costtomove; // distance from Start node to current node. cheapest way to get from start to current node. 
             if (tentativeG < gCost[nr][nc]) { // if the new path to neighbor is cheaper than any previous one
                 gCost[nr][nc] = tentativeG; // update the cost to reach this neighbor
-                cameFrom[nr][nc] = current; // update the path to reach this neighbor
+                state.cameFrom[nr][nc] = current; // update the path to reach this neighbor
                 int hCost = abs(end.first - nr) + abs(end.second - nc); // heuristic cost to end node
                 int fCost = tentativeG + hCost; // fCost = gCost + hCost
                 
@@ -250,7 +251,7 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
         }
     }
 
-    return {{}, exploredCount, explorationOrder}; // no path found
+    return {{}, state.exploredCount, state.explorationOrder}; // no path found
 }
 
 std::ostream& operator<<(std::ostream& os, CellType cell) {
