@@ -96,7 +96,7 @@ Grid readFromFile(std::string filename) {
     return grid;
 }
 
-Position findChar(const Grid& grid, CellType target) {
+Position findCell(const Grid& grid, CellType target) {
     for (int r {0}; r < static_cast<int>(grid.size()); ++r) {
         for (int c {0}; c < static_cast<int>(grid[0].size()); ++c) {
             if (grid[r][c] == target) {
@@ -107,7 +107,7 @@ Position findChar(const Grid& grid, CellType target) {
     return {-1, -1};
 }
 
-bool validateGridAndFindMarkers(const Grid& grid, int row, int col) {
+bool isInBounds(const Grid& grid, int row, int col) {
     return row >= 0 && row < static_cast<int>(grid.size()) &&
            col >= 0 && col < static_cast<int>(grid[0].size());
 }
@@ -148,7 +148,7 @@ SearchResult bfs(const Grid& grid, Position start, Position end) {
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
-            if (validateGridAndFindMarkers(grid, nr, nc) && !visited[nr][nc] && grid[nr][nc] != CellType::Wall) {
+            if (isInBounds(grid, nr, nc) && !visited[nr][nc] && grid[nr][nc] != CellType::Wall) {
                 visited[nr][nc] = true;
                 // to get from this place, we came from the current
                 state.cameFrom[nr][nc] = current;
@@ -183,7 +183,7 @@ SearchResult iterativeDfs(const Grid& grid, Position start, Position end) {
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
-            if (validateGridAndFindMarkers(grid, nr, nc) && !visited[nr][nc] && grid[nr][nc] != CellType::Wall) {
+            if (isInBounds(grid, nr, nc) && !visited[nr][nc] && grid[nr][nc] != CellType::Wall) {
                 visited[nr][nc] = true;
                 state.cameFrom[nr][nc] = current;
                 st.push({nr, nc});
@@ -233,7 +233,7 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
         for (int i = 0; i < 4; ++i) {
             int nr = currentx + DIRECTIONS[i].first;
             int nc = currenty + DIRECTIONS[i].second;
-            if (!validateGridAndFindMarkers(grid, nr, nc) || grid[nr][nc] == CellType::Wall) {
+            if (!isInBounds(grid, nr, nc) || grid[nr][nc] == CellType::Wall) {
                 continue;
             }
             
@@ -312,8 +312,8 @@ void printTerminalGridAndStats(Grid& copy, const std::vector<Position>& path, co
         }
 }
 
-void rerunAlgorithm(const Grid& grid, Position start, Position end,
-                    Algorithm& algo, SearchResult& result) {
+void runAlgorithm(const Grid& grid, Position start, Position end,
+                    const Algorithm& algo, SearchResult& result) {
     if (start.first == -1 || end.first == -1) return;
 
     switch (algo) {
@@ -364,14 +364,14 @@ void resetSearch(SearchResult& result,
     resetAnimationStates(animatedGrid, animatedPath, animationStep);
 }
 
-bool checkGridValidity(const Grid& grid, Position& start, Position& end) {
+bool validateGrid(const Grid& grid, Position& start, Position& end) {
     if (grid.empty() || grid[0].empty()) {
         std::cerr << "Invalid or empty grid.\n";
         return false;
     }
     
-    start = findChar(grid, CellType::Start);
-    end = findChar(grid, CellType::End);
+    start = findCell(grid, CellType::Start);
+    end = findCell(grid, CellType::End);
     
     if (start.first == -1 || end.first == -1) {
         std::cerr << "Start or End not found.\n";
@@ -425,14 +425,14 @@ bool handleAlgorithmChoice(Grid& grid, Position& start, Position& end, int algor
             std::cerr << "Invalid choice. Exiting.\n";
             return false;
     }
-    rerunAlgorithm(grid, start, end, currentAlgo, result);
+    runAlgorithm(grid, start, end, currentAlgo, result);
     return true;
 }
 
 void handleTerminal(Grid& grid, Position& start, Position& end, SearchResult& result) {
     grid = readFromFile("grids/biggrid.txt");
     
-    if (!checkGridValidity(grid, start, end)) {
+    if (!validateGrid(grid, start, end)) {
         return;
     }
 
@@ -576,7 +576,7 @@ void handleGUI(Grid& grid, Position& start, Position& end,
 
         if (gridChanged) {
             auto algoStart = std::chrono::steady_clock::now();
-            rerunAlgorithm(grid, start, end, currentAlgo, result);
+            runAlgorithm(grid, start, end, currentAlgo, result);
             auto algoEnd = std::chrono::steady_clock::now();
             double executionTime =
                 std::chrono::duration<double, std::milli>(
