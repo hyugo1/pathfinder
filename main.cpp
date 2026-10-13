@@ -8,6 +8,7 @@
 #include <stack>
 #include <limits>
 #include <chrono>
+#include <optional>
 
 using Position = std::pair<int, int>;// {row, col}
 
@@ -328,19 +329,18 @@ void printTerminalGridAndStats(Grid& copy, const std::vector<Position>& path, co
         }
 }
 
-void runAlgorithm(const Grid& grid, Position start, Position end,
-                    const Algorithm& algo, SearchResult& result) {
-    if (start.first == -1 || end.first == -1) return;
+void runAlgorithm(const AppState& appState, const Algorithm& algo, SearchResult& result) {
+    if (appState.start.first == -1 || appState.end.first == -1) return;
 
     switch (algo) {
         case Algorithm::DFS:
-            result = iterativeDfs(grid, start, end);
+            result = iterativeDfs(appState.grid, appState.start, appState.end);
             break;
         case Algorithm::BFS:
-            result = bfs(grid, start, end);
+            result = bfs(appState.grid, appState.start, appState.end);
             break;
         case Algorithm::AStar:
-            result = aStar(grid, start, end);
+            result = aStar(appState.grid, appState.start, appState.end);
             break;
         default:
             break;
@@ -365,38 +365,36 @@ void resetResults(SearchResult& result) {
     result.totalNodesExplored = 0;
 }
 
-// void resetAnimationStates(std::vector<std::vector<bool>>& animatedGrid, std::vector<bool>& animatedPath, int& animationStep) {
-//     animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
-//     animatedPath = std::vector<bool>(ROWS * COLS, false);
-//     animationStep = 0;
-// }
-
-void resetSearch(SearchResult& result,
-                 std::vector<std::vector<bool>>& animatedGrid,
-                 std::vector<bool>& animatedPath,
-                 int& animationStep) {
-
-    resetResults(result);
-    // resetAnimationStates(animatedGrid, animatedPath, animationStep);
+void resetAnimationStates(AnimationState& animationState) {
+    animationState.animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
+    animationState.animatedPath = std::vector<bool>(ROWS * COLS, false);
+    animationState.animationStep = 0;
 }
 
-bool validateGrid(const Grid& grid, Position& start, Position& end) {
-    if (grid.empty() || grid[0].empty()) {
+void resetSearch(SearchResult& result,
+                 AnimationState& animationState) {
+
+    resetResults(result);
+    resetAnimationStates(animationState);
+}
+
+bool validateGrid(AppState& appState) {
+    if (appState.grid.empty() || appState.grid[0].empty()) {
         std::cerr << "Invalid or empty grid.\n";
         return false;
     }
     
-    start = findCell(grid, CellType::Start);
-    end = findCell(grid, CellType::End);
+    appState.start = findCell(appState.grid, CellType::Start);
+    appState.end = findCell(appState.grid, CellType::End);
     
-    if (start.first == -1 || end.first == -1) {
+    if (appState.start.first == -1 || appState.end.first == -1) {
         std::cerr << "Start or End not found.\n";
         return false;
     }
 
-    if (std::count_if(grid.begin(), grid.end(), [](const std::vector<CellType>& row) {
+    if (std::count_if(appState.grid.begin(), appState.grid.end(), [](const std::vector<CellType>& row) {
         return std::count(row.begin(), row.end(), CellType::Start) > 1;
-    }) > 0 || std::count_if(grid.begin(), grid.end(), [](const std::vector<CellType>& row) {
+    }) > 0 || std::count_if(appState.grid.begin(), appState.grid.end(), [](const std::vector<CellType>& row) {
         return std::count(row.begin(), row.end(), CellType::End) > 1;
     }) > 0) {
         std::cerr << "More than one Start or End found.\n";
@@ -423,7 +421,7 @@ int askAlgorithm() {
     return algorithmChoice;
 }
 
-bool handleAlgorithmChoice(Grid& grid, Position& start, Position& end, int algorithmChoice, SearchResult& result) {
+bool handleAlgorithmChoice(AppState& appState, int algorithmChoice, SearchResult& result) {
     switch (algorithmChoice) {
         case 1:
             std::cout << "Using BFS.\n";
@@ -441,38 +439,39 @@ bool handleAlgorithmChoice(Grid& grid, Position& start, Position& end, int algor
             std::cerr << "Invalid choice. Exiting.\n";
             return false;
     }
-    runAlgorithm(grid, start, end, currentAlgo, result);
+    runAlgorithm(appState, currentAlgo, result);
     return true;
 }
 
-void handleTerminal(Grid& grid, Position& start, Position& end, SearchResult& result) {
-    grid = readFromFile("grids/biggrid.txt");
+void handleTerminal(AppState& appState, SearchResult& result) {
+    appState.grid = readFromFile("grids/biggrid.txt");
     
-    if (!validateGrid(grid, start, end)) {
+    if (!validateGrid(appState)) {
         return;
     }
 
     int algorithmChoice {askAlgorithm()};
     
-    if (!handleAlgorithmChoice(grid, start, end, algorithmChoice, result)) {
+    if (!handleAlgorithmChoice(appState, algorithmChoice, result)) {
         return;
     }
     
-    Grid copy = grid;
+    Grid copy = appState.grid;
     printTerminalGridAndStats(copy, result.path, result.explorationOrder);
 }
 
 
 
-void handleKeyboard(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event) {
+
+void handleKeyboard(AppState& appState, AnimationState& animationState, SearchResult& result, const std::optional<sf::Event>& event, sf::RenderWindow& window) {
     if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
         if ((keyPressed->code == sf::Keyboard::Key::Num1 ||
                 keyPressed->code == sf::Keyboard::Key::Num2 ||
                 keyPressed->code == sf::Keyboard::Key::Num3) &&
-            (start.first == -1 || end.first == -1)) {
+            (appState.start.first == -1 || appState.end.first == -1)) {
 
             std::cout << "Set start and end first!\n";
-            continue;
+            // continue;
         }
 
         switch (keyPressed->code) {
@@ -504,13 +503,13 @@ void handleKeyboard(AppState& appState, AnimationState& animationState, const st
                 appState.statsRequested = false;
                 for (int r = 0; r < ROWS; ++r) {
                     for (int c = 0; c < COLS; ++c) {
-                        grid[r][c] = CellType::Open;
+                        appState.grid[r][c] = CellType::Open;
                     }
                 }
 
                 appState.start = {-1, -1};
                 appState.end   = {-1, -1};
-                resetSearch(result, animationState.animatedGrid, animationState.animatedPath, animationState.animationStep);
+                resetSearch(result, animationState);
                 currentAlgo = Algorithm::None;
                 break;
             case sf::Keyboard::Key::LShift:
@@ -523,60 +522,62 @@ void handleKeyboard(AppState& appState, AnimationState& animationState, const st
     }
 }
 
-void handleLeftClick(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event, int row, int col) {
+void handleLeftClick(AppState& appState, AnimationState& animationState, SearchResult& result, const std::optional<sf::Event>& event, int row, int col) {
     // toggle wall
-    grid[row][col] =
-        (grid[row][col] == CellType::Wall)
+    appState.grid[row][col] =
+        (appState.grid[row][col] == CellType::Wall)
         ? CellType::Open
         : CellType::Wall;
     appState.statsRequested = false;
     appState.gridChanged = true;
-    resetSearch(result, animationState.animatedGrid, animationState.animatedPath, animationState.animationStep);
+    resetSearch(result, animationState);
 }
 
 
-void handleRightClick(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event, int row, int col) {
+
+void handleRightClick(AppState& appState, AnimationState& animationState, SearchResult& result, const std::optional<sf::Event>& event, int row, int col) {
      // set END
-    for (auto& r : grid)
+    for (auto& r : appState.grid)
         for (auto& c : r)
             if (c == CellType::End) c = CellType::Open;
     
     appState.statsRequested = false;
     appState.gridChanged = true;
     appState.end = {row, col};
-    grid[row][col] = CellType::End;
+    appState.grid[row][col] = CellType::End;
 
-    resetSearch(result, animationState.animatedGrid, animationState.animatedPath, animationState.animationStep);
+    resetSearch(result, animationState);
 }
 
-void handleShiftRightClick(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event, int row, int col) {
+void handleShiftRightClick(AppState& appState, AnimationState& animationState, SearchResult& result, const std::optional<sf::Event>& event, int row, int col) {
     // set START
-    for (auto& r : grid)
+    for (auto& r : appState.grid)
         for (auto& c : r)
             if (c == CellType::Start) c = CellType::Open;
     
     appState.statsRequested = false;
     appState.gridChanged = true;
     appState.start = {row, col};
-    grid[row][col] = CellType::Start;
+    appState.grid[row][col] = CellType::Start;
 
-    resetSearch(result, animationState.animatedGrid, animationState.animatedPath, animationState.animationStep);
+    resetSearch(result, animationState);
 }
 
-void handleMouse(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event) {
+void handleMouse(AppState& appState, AnimationState& animationState, SearchResult& result, const std::optional<sf::Event>& event) {
     if (const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>()) {
         int col = mousePressed->position.x / CELL_SIZE;
         int row = mousePressed->position.y / CELL_SIZE;
 
         if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
             if (mousePressed->button == sf::Mouse::Button::Left) {
-                handleLeftClick(appState, animationState, event, row, col);
+                handleLeftClick(appState, animationState, result, event, row, col);
+            }
+            else if (mousePressed->button == sf::Mouse::Button::Right &&
+                    sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift)) {
+                handleShiftRightClick(appState, animationState, result, event, row, col);
             }
             else if (mousePressed->button == sf::Mouse::Button::Right) {
-                handleRightClick(appState, animationState, event, row, col);
-            }
-            else if (mousePressed->button == sf::Mouse::Button::Right && sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift)) {
-                handleShiftRightClick(appState, animationState, event, row, col);
+                handleRightClick(appState, animationState, result, event, row, col);
             }
             else { 
                 std::cout << "Unknown mouse button pressed.\n";
@@ -588,7 +589,7 @@ void handleMouse(AppState& appState, AnimationState& animationState, const std::
 void runAlgorithmAndDisplayStats(AppState& appState, AnimationState& animationState,
                                 const Algorithm& currentAlgo, SearchResult& result) {
     auto algoStart = std::chrono::steady_clock::now();
-    runAlgorithm(appState.grid, appState.start, appState.end, currentAlgo, result);
+    runAlgorithm(appState, currentAlgo, result);
     auto algoEnd = std::chrono::steady_clock::now();
     double executionTime =
         std::chrono::duration<double, std::milli>(
@@ -614,11 +615,10 @@ void runAlgorithmAndDisplayStats(AppState& appState, AnimationState& animationSt
     appState.gridChanged = false;
 }
 
-void handleGUI(Grid& grid, Position& start, Position& end,
+void handleGUI(AppState& appState,
                SearchResult& result,
                sf::RenderWindow& window) {
-
-    AppState appState;
+    
     AnimationState animationState;
 
     while (window.isOpen()) {
@@ -630,15 +630,15 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                 window.close();
             }
 
-            handleKeyboard(appState, event);
-            handleMouse(appState, animationState, event);
+            handleKeyboard(appState, animationState, result, event, window);
+            handleMouse(appState, animationState, result, event);
         }
 
         if (appState.gridChanged) {
             runAlgorithmAndDisplayStats(appState, animationState, currentAlgo, result);
         }
 
-        if (appState.animationStep < static_cast<int>(result.explorationOrder.size())) {
+        if (animationState.animationStep < static_cast<int>(result.explorationOrder.size())) {
             //only reveal a new cell every, say, 10-20 milliseconds, so a human can actually perceive the expansion.
             if (animationState.clock.getElapsedTime().asMilliseconds() > 10) {
                 animationState.animatedGrid[result.explorationOrder[animationState.animationStep].first][result.explorationOrder[animationState.animationStep].second] = true;
@@ -667,7 +667,7 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                 cell.setPosition({col * CELL_SIZE * 1.f, row * CELL_SIZE * 1.f});
 
                 // base color
-                switch (grid[row][col]) {
+                switch (appState.grid[row][col]) {
                     case CellType::Open:  cell.setFillColor(sf::Color::White); break;
                     case CellType::Wall:  cell.setFillColor(sf::Color::Black); break;
                     case CellType::Path:  cell.setFillColor(sf::Color::Yellow); break;
@@ -676,11 +676,11 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                     case CellType::End:   cell.setFillColor(sf::Color::Blue); break;
                 }
 
-                if (animationState.animatedGrid[row][col] && grid[row][col] != CellType::Start && grid[row][col] != CellType::End) {
+                if (animationState.animatedGrid[row][col] && appState.grid[row][col] != CellType::Start && appState.grid[row][col] != CellType::End) {
                     cell.setFillColor(sf::Color::Cyan);
                 }
                 
-                if (animationState.animatedPath[row * COLS + col] && grid[row][col] != CellType::Start && grid[row][col] != CellType::End) {
+                if (animationState.animatedPath[row * COLS + col] && appState.grid[row][col] != CellType::Start && appState.grid[row][col] != CellType::End) {
                     cell.setFillColor(sf::Color::Red);
                 }
 
@@ -697,23 +697,26 @@ void handleGUI(Grid& grid, Position& start, Position& end,
 
 
 int main() {
-    Grid grid(ROWS, std::vector<CellType>(COLS, CellType::Open));
 
-    Position start = {-1, -1};
-    Position end = {-1, -1};
+    AnimationState animationState;
+    AppState appState;
+    appState.grid = Grid(ROWS, std::vector<CellType>(COLS, CellType::Open));
+    appState.start = {-1, -1};
+    appState.end = {-1, -1};    
+
     SearchResult result;
 
     int choice {};
     std::cout << "Choose mode: 1 for Terminal, 2 for GUI: ";
     std::cin >> choice;
     if (choice == 1) {
-        handleTerminal(grid, start, end, result);
+        handleTerminal(appState, result);
     } else {
         sf::RenderWindow window(
             sf::VideoMode({COLS * CELL_SIZE, ROWS * CELL_SIZE}),
             "Pathfinding Visualizer"
         );
-        handleGUI(grid, start, end, result, window);
+        handleGUI(appState, result, window);
     }
     return 0;
 }
