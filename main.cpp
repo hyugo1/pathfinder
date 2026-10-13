@@ -27,9 +27,28 @@ struct SearchResult {
     int totalNodesExplored {0};
     // animation
     std::vector<Position> explorationOrder;
-    std::vector<std::vector<bool>> exploredGrid;
-
 };
+
+struct SearchState {
+    std::vector<std::vector<Position>> cameFrom;
+    int exploredCount {0};
+    std::vector<Position> explorationOrder;
+};
+
+SearchState createSearchState(const Grid& grid) {
+    return {
+        std::vector<std::vector<Position>>(grid.size(), std::vector<Position>(grid[0].size(), {-1, -1})),
+        0,
+        {}
+    };
+}
+
+constexpr std::array<Position, 4> DIRECTIONS {{
+    {-1, 0}, // Up
+    { 1, 0}, // Down
+    { 0,-1}, // Left
+    { 0, 1}  // Right
+}};
 
 std::string parseLine(const std::string& line) {
     std::string result;
@@ -88,7 +107,7 @@ Position findChar(const Grid& grid, CellType target) {
     return {-1, -1};
 }
 
-bool inBounds(const Grid& grid, int row, int col) {
+bool validateGridAndFindMarkers(const Grid& grid, int row, int col) {
     return row >= 0 && row < static_cast<int>(grid.size()) &&
            col >= 0 && col < static_cast<int>(grid[0].size());
 }
@@ -108,87 +127,71 @@ std::vector<Position> reconstructPath(const std::vector<std::vector<Position>>& 
 }
 
 SearchResult bfs(const Grid& grid, Position start, Position end) {
-    std::vector<std::vector<bool>> explored(grid.size(), std::vector<bool>(grid[0].size(), false)); // needed for animation to show explored nodes
-    std::vector<std::vector<bool>> visited(grid.size(), std::vector<bool>(grid[0].size(), false));
-    std::vector<std::vector<Position>> cameFrom(grid.size(), std::vector<Position>(grid[0].size(), {-1, -1}));
+    SearchState state = createSearchState(grid);
+    std::vector<std::vector<bool>> visited(grid.size(), std::vector<bool>(grid[0].size(), false)); //[[False for _ in range(cols)] for _ in range(rows)]
 
     std::queue<Position> q;
     q.push(start);
     visited[start.first][start.second] = true;
-    int exploredCount = 0;
-    std::vector<Position> explorationOrder;
-
-    const std::array<Position, 4> directions {{
-        {-1, 0}, {1, 0}, {0, -1}, {0, 1}
-    }};
 
     while (!q.empty()) {
         Position current = q.front();
-        exploredCount++;
-        explored[current.first][current.second] = true;
-        explorationOrder.push_back(current);
+        state.exploredCount++;
+        state.explorationOrder.push_back(current);
         q.pop();
 
         if (current == end) {
-            return {reconstructPath(cameFrom, end), exploredCount, explorationOrder, explored};
+            return {reconstructPath(state.cameFrom, end), state.exploredCount, state.explorationOrder};
         }
 
-        for (const Position& direction : directions) {
+        for (const Position& direction : DIRECTIONS) {
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
-            if (inBounds(grid, nr, nc) && !visited[nr][nc] && grid[nr][nc] != CellType::Wall) {
+            if (validateGridAndFindMarkers(grid, nr, nc) && !visited[nr][nc] && grid[nr][nc] != CellType::Wall) {
                 visited[nr][nc] = true;
                 // to get from this place, we came from the current
-                cameFrom[nr][nc] = current;
+                state.cameFrom[nr][nc] = current;
                 q.push({nr, nc});
             }
         }
     }
 
-    return {{}, exploredCount, explorationOrder, explored}; // no path found
+    return {{}, state.exploredCount, state.explorationOrder}; // no path found
 }
 
 SearchResult iterativeDfs(const Grid& grid, Position start, Position end) {
-    std::vector<std::vector<bool>> explored(grid.size(), std::vector<bool>(grid[0].size(), false)); // needed for animation to show explored nodes
-    std::vector<std::vector<bool>> visited(grid.size(), std::vector<bool>(grid[0].size(), false));
-    std::vector<std::vector<Position>> cameFrom(grid.size(), std::vector<Position>(grid[0].size(), {-1, -1}));
+    SearchState state = createSearchState(grid);
+    std::vector<std::vector<bool>> visited(grid.size(), std::vector<bool>(grid[0].size(), false)); //[[False for _ in range(cols)] for _ in range(rows)]
 
     std::stack<Position> st;
     st.push(start);
     visited[start.first][start.second] = true;
-    int exploredCount = 0;
-    std::vector<Position> explorationOrder;
-
-    const std::array<Position, 4> directions {{
-        {-1, 0}, {1, 0}, {0, -1}, {0, 1}
-    }};
 
     while (!st.empty()) {
         Position current = st.top();
         st.pop();
-        exploredCount++;
-        explorationOrder.push_back(current);
-        explored[current.first][current.second] = true;
+        state.exploredCount++;
+        state.explorationOrder.push_back(current);
         if (current == end) {
-            return {reconstructPath(cameFrom, end), exploredCount, explorationOrder, explored};
+            return {reconstructPath(state.cameFrom, end), state.exploredCount, state.explorationOrder};
         }
 
         // backtrack in reverse order to maintain the original order of exploration
-        for (int i = directions.size() - 1; i >= 0; --i) {
-            const Position& direction = directions[i];
+        for (int i = DIRECTIONS.size() - 1; i >= 0; --i) {
+            const Position& direction = DIRECTIONS[i];
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
-            if (inBounds(grid, nr, nc) && !visited[nr][nc] && grid[nr][nc] != CellType::Wall) {
+            if (validateGridAndFindMarkers(grid, nr, nc) && !visited[nr][nc] && grid[nr][nc] != CellType::Wall) {
                 visited[nr][nc] = true;
-                cameFrom[nr][nc] = current;
+                state.cameFrom[nr][nc] = current;
                 st.push({nr, nc});
             }
         }
     }
 
-    return {{}, exploredCount, explorationOrder, explored}; // no path found
+    return {{}, state.exploredCount, state.explorationOrder}; // no path found
 }
 
 // Out of all the places I could go next, which one seems closest to the goal while also not being too expensive so far?
@@ -199,9 +202,7 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
     int rowCount = grid.size();
     int colCount = grid[0].size();
     
-    std::vector<std::vector<bool>> visited(rowCount, std::vector<bool>(colCount, false));//[[False for _ in range(cols)] for _ in range(rows)]
-    std::vector<std::vector<Position>> cameFrom(rowCount, std::vector<Position>(colCount, {-1, -1}));
-    std::vector<std::vector<bool>> explored(grid.size(), std::vector<bool>(grid[0].size(), false)); // needed for animation to show explored nodes
+    SearchState state = createSearchState(grid);
     std::vector<std::vector<int>> gCost(rowCount, std::vector<int>(colCount, std::numeric_limits<int>::max())); // cost from start to this node
 
     std::priority_queue<std::pair<int, Position>, std::vector<std::pair<int, Position>>, std::greater<>> pq;//std::greater makes it a minheap.default is maxheap.
@@ -210,46 +211,36 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
     pq.push({hStart, start});
 
     gCost[start.first][start.second] = 0;
-    const std::array<Position, 4> directions {{
-        {-1, 0}, {1, 0}, {0, -1}, {0, 1}
-    }};
 
-    int exploredCount = 0;
-    std::vector<Position> explorationOrder;
-    
     while (!pq.empty()) {
         auto [f, current] = pq.top();
         pq.pop();
         
         int currentx = current.first;
         int currenty = current.second;
-        int endx = end.first;
-        int endy = end.second;
-
         int hCost = abs(end.first - currentx) + abs(end.second - currenty);
         if (f > gCost[currentx][currenty] + hCost) {
             continue; // skip outdated entry
         }
-        explored[current.first][current.second] = true;
-        exploredCount++;
-        explorationOrder.push_back(current);
+        state.exploredCount++;
+        state.explorationOrder.push_back(current);
         
         if (current == end) {
-            return {reconstructPath(cameFrom, end), exploredCount, explorationOrder, explored};
+            return {reconstructPath(state.cameFrom, end), state.exploredCount, state.explorationOrder};
         }
         
         int costtomove = 1;
         for (int i = 0; i < 4; ++i) {
-            int nr = currentx + directions[i].first;
-            int nc = currenty + directions[i].second;
-            if (!inBounds(grid, nr, nc) || grid[nr][nc] == CellType::Wall) {
+            int nr = currentx + DIRECTIONS[i].first;
+            int nc = currenty + DIRECTIONS[i].second;
+            if (!validateGridAndFindMarkers(grid, nr, nc) || grid[nr][nc] == CellType::Wall) {
                 continue;
             }
             
             int tentativeG = gCost[currentx][currenty] + costtomove; // distance from Start node to current node. cheapest way to get from start to current node. 
             if (tentativeG < gCost[nr][nc]) { // if the new path to neighbor is cheaper than any previous one
                 gCost[nr][nc] = tentativeG; // update the cost to reach this neighbor
-                cameFrom[nr][nc] = current; // update the path to reach this neighbor
+                state.cameFrom[nr][nc] = current; // update the path to reach this neighbor
                 int hCost = abs(end.first - nr) + abs(end.second - nc); // heuristic cost to end node
                 int fCost = tentativeG + hCost; // fCost = gCost + hCost
                 
@@ -258,7 +249,7 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
         }
     }
 
-    return {{}, exploredCount, explorationOrder, explored}; // no path found
+    return {{}, state.exploredCount, state.explorationOrder}; // no path found
 }
 
 std::ostream& operator<<(std::ostream& os, CellType cell) {
@@ -273,16 +264,16 @@ std::ostream& operator<<(std::ostream& os, CellType cell) {
     return os;
 }
 
-void printGrid(Position start, Position end, Grid& copy, const std::vector<Position>& path, const std::vector<Position>& exploredNodes) {
+void printTerminalGridAndStats(Grid& copy, const std::vector<Position>& path, const std::vector<Position>& explorationOrder) {
     if (!path.empty()) {
+        for (const Position& position : explorationOrder) {
+            if (copy[position.first][position.second] != CellType::Start && copy[position.first][position.second] != CellType::End) {
+                copy[position.first][position.second] = CellType::Explored;
+            }
+        }
         for (const Position& position : path) {
             if (copy[position.first][position.second] != CellType::Start && copy[position.first][position.second] != CellType::End) {
                 copy[position.first][position.second] = CellType::Path;
-            }
-        }
-        for (const Position& position : exploredNodes) {
-            if (copy[position.first][position.second] != CellType::Start && copy[position.first][position.second] != CellType::End) {
-                copy[position.first][position.second] = CellType::Explored;
             }
         }
         const std::string RED = "\033[31m";
@@ -292,7 +283,7 @@ void printGrid(Position start, Position end, Grid& copy, const std::vector<Posit
         const std::string RESET = "\033[0m";
         
         for (const auto& row : copy) {
-            for (CellType cell : row) {
+            for (const CellType cell : row) {
                 switch (cell) {
                     case CellType::Explored:
                         std::cout << LIGHT_BLUE << cell << RESET;
@@ -309,13 +300,16 @@ void printGrid(Position start, Position end, Grid& copy, const std::vector<Posit
                     default:
                         std::cout << cell;
                         break;
+                    }
                 }
-            }
             std::cout << '\n';
+            }
+        std::cout << "Explored: " << explorationOrder.size() << " nodes.\n";
+        std::cout << "Path Length: " << path.size() << ".\n";
+        
+        } else {
+            std::cout << "No path found.\n";
         }
-    } else {
-        std::cout << "No path found.\n";
-    }
 }
 
 void rerunAlgorithm(const Grid& grid, Position start, Position end,
@@ -349,13 +343,31 @@ std::string algoName(const Algorithm& algo) {
             return "None";
     }
 }
+void resetResults(SearchResult& result) {
+    result.path.clear();
+    result.explorationOrder.clear();
+    result.totalNodesExplored = 0;
+}
 
-void handleTerminal(Grid& grid, Position& start, Position& end, SearchResult& result) {
-    grid = readFromFile("grids/biggrid.txt");
-    
+void resetAnimationStates(std::vector<std::vector<bool>>& animatedGrid, std::vector<bool>& animatedPath, int& animationStep) {
+    animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
+    animatedPath = std::vector<bool>(ROWS * COLS, false);
+    animationStep = 0;
+}
+
+void resetSearch(SearchResult& result,
+                 std::vector<std::vector<bool>>& animatedGrid,
+                 std::vector<bool>& animatedPath,
+                 int& animationStep) {
+
+    resetResults(result);
+    resetAnimationStates(animatedGrid, animatedPath, animationStep);
+}
+
+bool checkGridValidity(const Grid& grid, Position& start, Position& end) {
     if (grid.empty() || grid[0].empty()) {
         std::cerr << "Invalid or empty grid.\n";
-        return;
+        return false;
     }
     
     start = findChar(grid, CellType::Start);
@@ -363,42 +375,80 @@ void handleTerminal(Grid& grid, Position& start, Position& end, SearchResult& re
     
     if (start.first == -1 || end.first == -1) {
         std::cerr << "Start or End not found.\n";
-        return;
+        return false;
     }
-    
+
+    if (std::count_if(grid.begin(), grid.end(), [](const std::vector<CellType>& row) {
+        return std::count(row.begin(), row.end(), CellType::Start) > 1;
+    }) > 0 || std::count_if(grid.begin(), grid.end(), [](const std::vector<CellType>& row) {
+        return std::count(row.begin(), row.end(), CellType::End) > 1;
+    }) > 0) {
+        std::cerr << "More than one Start or End found.\n";
+        return false;
+    }
+
+    return true;
+}
+
+int askAlgorithm() {
     int algorithmChoice {};
     std::cout << "Which algorithm do you want to use? "; 
     for (int i = 1; i <= 3; ++i) {
         std::cout << i << " for " << (i == 1 ? "BFS" : (i == 2 ? "DFS" : "A*")) << ", ";
     }
     std::cout << "\nEnter your algorithmChoice: ";
-    std::cin >> algorithmChoice;
-    
+    if (!(std::cin >> algorithmChoice) || algorithmChoice < 1 || algorithmChoice > 3) {
+        std::cerr << "Invalid input. Please enter a number between 1 and 3.\n";
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        return askAlgorithm(); // recursively ask again
+    }
+
+    return algorithmChoice;
+}
+
+bool handleAlgorithmChoice(Grid& grid, Position& start, Position& end, int algorithmChoice, SearchResult& result) {
     switch (algorithmChoice) {
         case 1:
-            result = bfs(grid, start, end);
+            std::cout << "Using BFS.\n";
+            currentAlgo = Algorithm::BFS;
             break;
         case 2:
-            result = iterativeDfs(grid, start, end);
+            std::cout << "Using DFS.\n";
+            currentAlgo = Algorithm::DFS;
             break;
         case 3:
-            result = aStar(grid, start, end);
+            std::cout << "Using A*.\n";
+            currentAlgo = Algorithm::AStar;
             break;
         default:
-            std::cerr << "Invalid choice.\n";
-            return;
+            std::cerr << "Invalid choice. Exiting.\n";
+            return false;
+    }
+    rerunAlgorithm(grid, start, end, currentAlgo, result);
+    return true;
+}
+
+void handleTerminal(Grid& grid, Position& start, Position& end, SearchResult& result) {
+    grid = readFromFile("grids/biggrid.txt");
+    
+    if (!checkGridValidity(grid, start, end)) {
+        return;
+    }
+
+    int algorithmChoice {askAlgorithm()};
+    
+    if (!handleAlgorithmChoice(grid, start, end, algorithmChoice, result)) {
+        return;
     }
     
     Grid copy = grid;
-    printGrid(start, end, copy, result.path, result.explorationOrder);
-    
-    std::cout << "Explored: " << result.totalNodesExplored << " nodes.\n";
-    std::cout << "Path Length: " << result.path.size() << ".\n";
+    printTerminalGridAndStats(copy, result.path, result.explorationOrder);
 }
 
 
 void handleGUI(Grid& grid, Position& start, Position& end,
-               SearchResult& result, Position& lastClicked,
+               SearchResult& result,
                sf::RenderWindow& window) {
     bool gridChanged = false;
     bool statsRequested = false;
@@ -462,9 +512,11 @@ void handleGUI(Grid& grid, Position& start, Position& end,
 
                         start = {-1, -1};
                         end   = {-1, -1};
-                        result.path.clear();
-                        result.explorationOrder = {};
+                        resetSearch(result, animatedGrid, animatedPath, animationStep);
                         currentAlgo = Algorithm::None;
+                        break;
+                    case sf::Keyboard::Key::LShift:
+                        std::cout << "Hold LShift and right click to set the END position.\n";
                         break;
                     default:
                         std::cout << "Unknown key pressed.\n";
@@ -485,13 +537,10 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                             (grid[row][col] == CellType::Wall)
                             ? CellType::Open
                             : CellType::Wall;
-                        result.path.clear();
-                        result.explorationOrder.clear();
-                        result.exploredGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
-                        gridChanged = true;
                         statsRequested = false;
-                        animationStep = 0;
-                        animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
+                        gridChanged = true;
+                        
+                        resetSearch(result, animatedGrid, animatedPath, animationStep);
                     }
                     else if (mousePressed->button == sf::Mouse::Button::Right) {
                         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift)) {
@@ -499,28 +548,26 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                             for (auto& r : grid)
                                 for (auto& c : r)
                                     if (c == CellType::End) c = CellType::Open;
-                            result.path.clear();
-                            result.exploredGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
+                            
+                            
+                            statsRequested = false;
+                            gridChanged = true;
                             end = {row, col};
                             grid[row][col] = CellType::End;
-                            gridChanged = true;
-                            statsRequested = false;
-                            animationStep = 0;
-                            animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
+
+                            resetSearch(result, animatedGrid, animatedPath, animationStep);
                         }
                         else {
                             // set START
                             for (auto& r : grid)
                                 for (auto& c : r)
                                     if (c == CellType::Start) c = CellType::Open;
-                            result.path.clear();
-                            result.exploredGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
                             start = {row, col};
                             grid[row][col] = CellType::Start;
                             gridChanged = true;
                             statsRequested = false;
-                            animationStep = 0;
-                            animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
+
+                            resetSearch(result, animatedGrid, animatedPath, animationStep);
                         }
                     }
                 }
@@ -547,11 +594,7 @@ void handleGUI(Grid& grid, Position& start, Position& end,
                     << result.totalNodesExplored << "\n";
             }
 
-            animationStep = 0;
-            animatedGrid = std::vector<std::vector<bool>>(
-                ROWS, std::vector<bool>(COLS, false)
-            );
-            animatedPath = std::vector<bool>(ROWS * COLS, false);
+            resetAnimationStates(animatedGrid, animatedPath, animationStep);
             clock.restart();
             gridChanged = false;
         }
@@ -619,9 +662,7 @@ int main() {
 
     Position start = {-1, -1};
     Position end = {-1, -1};
-    // SearchResult result = {{}, 0, {}, {}};
     SearchResult result;
-    Position lastClicked = {-1, -1};
 
     int choice {};
     std::cout << "Choose mode: 1 for Terminal, 2 for GUI: ";
@@ -633,7 +674,7 @@ int main() {
             sf::VideoMode({COLS * CELL_SIZE, ROWS * CELL_SIZE}),
             "Pathfinding Visualizer"
         );
-        handleGUI(grid, start, end, result, lastClicked, window);
+        handleGUI(grid, start, end, result, window);
     }
     return 0;
 }
