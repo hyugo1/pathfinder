@@ -143,13 +143,13 @@ std::vector<Position> reconstructPath(const std::vector<std::vector<Position>>& 
     return path;
 }
 
-SearchResult bfs(const Grid& grid, Position start, Position end) {
-    SearchState searchState = createSearchState(grid);
-    std::vector<std::vector<bool>> visited(grid.size(), std::vector<bool>(grid[0].size(), false)); //[[False for _ in range(cols)] for _ in range(rows)]
+SearchResult bfs(const AppState& appstate) {
+    SearchState searchState = createSearchState(appstate.grid);
+    std::vector<std::vector<bool>> visited(appstate.grid.size(), std::vector<bool>(appstate.grid[0].size(), false)); //[[False for _ in range(cols)] for _ in range(rows)]
 
     std::queue<Position> q;
-    q.push(start);
-    visited[start.first][start.second] = true;
+    q.push(appstate.start);
+    visited[appstate.start.first][appstate.start.second] = true;
 
     while (!q.empty()) {
         Position current = q.front();
@@ -157,15 +157,15 @@ SearchResult bfs(const Grid& grid, Position start, Position end) {
         searchState.explorationOrder.push_back(current);
         q.pop();
 
-        if (current == end) {
-            return {reconstructPath(searchState.cameFrom, end), searchState.exploredCount, searchState.explorationOrder};
+        if (current == appstate.end) {
+            return {reconstructPath(searchState.cameFrom, appstate.end), searchState.exploredCount, searchState.explorationOrder};
         }
 
         for (const Position& direction : DIRECTIONS) {
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
-            if (isInBounds(grid, nr, nc) && !visited[nr][nc] && grid[nr][nc] != CellType::Wall) {
+            if (isInBounds(appstate.grid, nr, nc) && !visited[nr][nc] && appstate.grid[nr][nc] != CellType::Wall) {
                 visited[nr][nc] = true;
                 // to get from this place, we came from the current
                 searchState.cameFrom[nr][nc] = current;
@@ -177,21 +177,21 @@ SearchResult bfs(const Grid& grid, Position start, Position end) {
     return {{}, searchState.exploredCount, searchState.explorationOrder}; // no path found
 }
 
-SearchResult iterativeDfs(const Grid& grid, Position start, Position end) {
-    SearchState searchState = createSearchState(grid);
-    std::vector<std::vector<bool>> visited(grid.size(), std::vector<bool>(grid[0].size(), false)); //[[False for _ in range(cols)] for _ in range(rows)]
+SearchResult iterativeDfs(const AppState& appstate) {
+    SearchState searchState = createSearchState(appstate.grid);
+    std::vector<std::vector<bool>> visited(appstate.grid.size(), std::vector<bool>(appstate.grid[0].size(), false)); //[[False for _ in range(cols)] for _ in range(rows)]
 
     std::stack<Position> st;
-    st.push(start);
-    visited[start.first][start.second] = true;
+    st.push(appstate.start);
+    visited[appstate.start.first][appstate.start.second] = true;
 
     while (!st.empty()) {
         Position current = st.top();
         st.pop();
         searchState.exploredCount++;
         searchState.explorationOrder.push_back(current);
-        if (current == end) {
-            return {reconstructPath(searchState.cameFrom, end), searchState.exploredCount, searchState.explorationOrder};
+        if (current == appstate.end) {
+            return {reconstructPath(searchState.cameFrom, appstate.end), searchState.exploredCount, searchState.explorationOrder};
         }
 
         // backtrack in reverse order to maintain the original order of exploration
@@ -200,7 +200,7 @@ SearchResult iterativeDfs(const Grid& grid, Position start, Position end) {
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
-            if (isInBounds(grid, nr, nc) && !visited[nr][nc] && grid[nr][nc] != CellType::Wall) {
+            if (isInBounds(appstate.grid, nr, nc) && !visited[nr][nc] && appstate.grid[nr][nc] != CellType::Wall) {
                 visited[nr][nc] = true;
                 searchState.cameFrom[nr][nc] = current;
                 st.push({nr, nc});
@@ -212,22 +212,22 @@ SearchResult iterativeDfs(const Grid& grid, Position start, Position end) {
 }
 
 // Out of all the places I could go next, which one seems closest to the goal while also not being too expensive so far?
-SearchResult aStar(const Grid& grid, Position start, Position end) {
+SearchResult aStar(const AppState& appstate) {
     // * g(n) → how far I’ve actually moved from start
     // * h(n) → guess to the goal (Manhattan distance)
     // * f(n) = g + h → “how promising this path looks”
-    int rowCount = grid.size();
-    int colCount = grid[0].size();
+    int rowCount = appstate.grid.size();
+    int colCount = appstate.grid[0].size();
     
-    SearchState searchState = createSearchState(grid);
+    SearchState searchState = createSearchState(appstate.grid);
     std::vector<std::vector<int>> gCost(rowCount, std::vector<int>(colCount, std::numeric_limits<int>::max())); // cost from start to this node
 
     std::priority_queue<std::pair<int, Position>, std::vector<std::pair<int, Position>>, std::greater<>> pq;//std::greater makes it a minheap.default is maxheap.
     
-    int hStart = abs(end.first - start.first) + abs(end.second - start.second);
-    pq.push({hStart, start});
+    int hStart = abs(appstate.end.first - appstate.start.first) + abs(appstate.end.second - appstate.start.second);
+    pq.push({hStart, appstate.start});
 
-    gCost[start.first][start.second] = 0;
+    gCost[appstate.start.first][appstate.start.second] = 0;
 
     while (!pq.empty()) {
         auto [f, current] = pq.top();
@@ -235,22 +235,22 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
         
         int currentx = current.first;
         int currenty = current.second;
-        int hCost = abs(end.first - currentx) + abs(end.second - currenty);
+        int hCost = abs(appstate.end.first - currentx) + abs(appstate.end.second - currenty);
         if (f > gCost[currentx][currenty] + hCost) {
             continue; // skip outdated entry
         }
         searchState.exploredCount++;
         searchState.explorationOrder.push_back(current);
         
-        if (current == end) {
-            return {reconstructPath(searchState.cameFrom, end), searchState.exploredCount, searchState.explorationOrder};
+        if (current == appstate.end) {
+            return {reconstructPath(searchState.cameFrom, appstate.end), searchState.exploredCount, searchState.explorationOrder};
         }
         
         int costtomove = 1;
         for (int i = 0; i < 4; ++i) {
             int nr = currentx + DIRECTIONS[i].first;
             int nc = currenty + DIRECTIONS[i].second;
-            if (!isInBounds(grid, nr, nc) || grid[nr][nc] == CellType::Wall) {
+            if (!isInBounds(appstate.grid, nr, nc) || appstate.grid[nr][nc] == CellType::Wall) {
                 continue;
             }
             
@@ -258,7 +258,7 @@ SearchResult aStar(const Grid& grid, Position start, Position end) {
             if (tentativeG < gCost[nr][nc]) { // if the new path to neighbor is cheaper than any previous one
                 gCost[nr][nc] = tentativeG; // update the cost to reach this neighbor
                 searchState.cameFrom[nr][nc] = current; // update the path to reach this neighbor
-                int hCost = abs(end.first - nr) + abs(end.second - nc); // heuristic cost to end node
+                int hCost = abs(appstate.end.first - nr) + abs(appstate.end.second - nc); // heuristic cost to end node
                 int fCost = tentativeG + hCost; // fCost = gCost + hCost
                 
                 pq.push({fCost, {nr, nc}}); // push the neighbor with its fCost as priority
@@ -334,13 +334,13 @@ void runAlgorithm(const AppState& appState, const Algorithm& algo, SearchResult&
 
     switch (algo) {
         case Algorithm::DFS:
-            result = iterativeDfs(appState.grid, appState.start, appState.end);
+            result = iterativeDfs(appState);
             break;
         case Algorithm::BFS:
-            result = bfs(appState.grid, appState.start, appState.end);
+            result = bfs(appState);
             break;
         case Algorithm::AStar:
-            result = aStar(appState.grid, appState.start, appState.end);
+            result = aStar(appState);
             break;
         default:
             break;
@@ -471,7 +471,7 @@ void handleKeyboard(AppState& appState, AnimationState& animationState, SearchRe
             (appState.start.first == -1 || appState.end.first == -1)) {
 
             std::cout << "Set start and end first!\n";
-            // continue;
+            return;
         }
 
         switch (keyPressed->code) {
@@ -513,7 +513,6 @@ void handleKeyboard(AppState& appState, AnimationState& animationState, SearchRe
                 currentAlgo = Algorithm::None;
                 break;
             case sf::Keyboard::Key::LShift:
-                std::cout << "Hold LShift and right click to set the END position.\n";
                 break;
             default:
                 std::cout << "Unknown key pressed.\n";
@@ -540,6 +539,8 @@ void handleRightClick(AppState& appState, AnimationState& animationState, Search
     for (auto& r : appState.grid)
         for (auto& c : r)
             if (c == CellType::End) c = CellType::Open;
+
+    std::cout << "Setting END at (" << row << ", " << col << ").\n";
     
     appState.statsRequested = false;
     appState.gridChanged = true;
@@ -554,6 +555,8 @@ void handleShiftRightClick(AppState& appState, AnimationState& animationState, S
     for (auto& r : appState.grid)
         for (auto& c : r)
             if (c == CellType::Start) c = CellType::Open;
+    
+    std::cout << "Setting start position to (" << row << ", " << col << ").\n";
     
     appState.statsRequested = false;
     appState.gridChanged = true;
