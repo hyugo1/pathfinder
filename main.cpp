@@ -468,9 +468,16 @@ void resetGrid(Grid& grid) {
     }
 }
 
-void resetStartEnd(AppState& appState) {
-    appState.start = {-1, -1};
-    appState.end = {-1, -1};
+void resetStartEnd(Grid& grid) {
+    for (int r = 0; r < ROWS; ++r) {
+        for (int c = 0; c < COLS; ++c) {
+            if (grid[r][c] == CellType::Start) {
+                grid[r][c] = CellType::Open;
+            } else if (grid[r][c] == CellType::End) {
+                grid[r][c] = CellType::Open;
+            }
+        }
+    }
 }
 
 void handleKeyboard(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event, sf::RenderWindow& window) {
@@ -515,7 +522,7 @@ void handleKeyboard(AppState& appState, AnimationState& animationState, const st
                 animationState.animationStep = 0;
 
                 resetGrid(appState.grid);
-                resetStartEnd(appState);
+                resetStartEnd(appState.grid);
                 resetSearch(appState.result, animationState);
                 break;
             case sf::Keyboard::Key::LShift:
@@ -591,7 +598,7 @@ void handleMouse(AppState& appState, AnimationState& animationState, const std::
     }
 }
 
-void displayStats(const SearchResult& result, const Algorithm& currentAlgo, double executionTime) {
+void printPerformanceStats(const SearchResult& result, const Algorithm& currentAlgo, double executionTime) {
     std::cout << "\n--- Performance Stats ---\n";
     std::cout << "Algorithm: " << algoName(currentAlgo) << "\n";
     std::cout << "Execution Time: " << executionTime << " ms\n";
@@ -599,23 +606,23 @@ void displayStats(const SearchResult& result, const Algorithm& currentAlgo, doub
     std::cout << "Path Length: " << result.path.size() << "\n";
 }
 
-void runAlgorithmAndDisplayStats(AppState& appState, AnimationState& animationState,
+double measureExecutionTime(std::function<void()> func) {
+    auto start = std::chrono::steady_clock::now();
+    func();
+    auto end = std::chrono::steady_clock::now();
+    return std::chrono::duration<double, std::milli>(end - start).count();
+}
+
+
+void displayPerformanceStats(AppState& appState, AnimationState& animationState,
                                 const Algorithm& currentAlgo) {
-    auto algoStart = std::chrono::steady_clock::now();
-    runAlgorithm(appState, currentAlgo);
-    auto algoEnd = std::chrono::steady_clock::now();
-    double executionTime =
-        std::chrono::duration<double, std::milli>(
-            algoEnd - algoStart
-        ).count();
+    double executionTime = measureExecutionTime([&]() {
+        runAlgorithm(appState, currentAlgo);
+    });
 
     if (appState.statsRequested && currentAlgo != Algorithm::None) {
-        displayStats(appState.result, currentAlgo, executionTime);
+        printPerformanceStats(appState.result, currentAlgo, executionTime);
     }
-
-    resetAnimationStates(animationState);
-    animationState.clock.restart();
-    appState.gridChanged = false;
 }
 
 void eventGUI(sf::RenderWindow& window, AppState& appState, AnimationState& animationState, const Algorithm& currentAlgo) {
@@ -629,7 +636,11 @@ void eventGUI(sf::RenderWindow& window, AppState& appState, AnimationState& anim
     }
 
     if (appState.gridChanged) {
-        runAlgorithmAndDisplayStats(appState, animationState, currentAlgo);
+        displayPerformanceStats(appState, animationState, currentAlgo);
+
+        resetAnimationStates(animationState);
+        animationState.clock.restart();
+        appState.gridChanged = false;
     }
 
     if (animationState.animationStep < static_cast<int>(appState.result.explorationOrder.size())) {
@@ -712,10 +723,9 @@ void handleGUI(AppState& appState,
 
 int main() {
 
-    AnimationState animationState;
     AppState appState;
     appState.grid = Grid(ROWS, std::vector<CellType>(COLS, CellType::Open));
-    resetStartEnd(appState);
+    resetStartEnd(appState.grid);
 
     int choice {};
     std::cout << "Choose mode: 1 for Terminal, 2 for GUI: ";
