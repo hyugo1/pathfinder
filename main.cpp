@@ -655,23 +655,24 @@ AnimationPhase getAnimationPhase(const AnimationState& animationState, const App
 }
 
 void updateAnimation(AnimationState& animationState, const AppState& appState) {
+    // check if its time to update first before doing anything else
+    if (animationState.clock.getElapsedTime().asMilliseconds() <= ANIMATION_INTERVAL_MS) {
+        return;
+    }
+
     switch (getAnimationPhase(animationState, appState)) {
         case AnimationPhase::Exploring: {
-            if (animationState.clock.getElapsedTime().asMilliseconds() > ANIMATION_INTERVAL_MS) {
-                const auto position = appState.result.explorationOrder[animationState.animationStep];
-                animationState.animatedGrid[position.first][position.second] = true;
-                break;
-            }
+            const auto position = appState.result.explorationOrder[animationState.animationStep];
+            animationState.animatedGrid[position.first][position.second] = true;
+            break;
         }   
 
         case AnimationPhase::DrawingPath: {
-            if (animationState.clock.getElapsedTime().asMilliseconds() > ANIMATION_INTERVAL_MS) {
-                const int explorationSize = static_cast<int>(appState.result.explorationOrder.size());
-                const int pathIndex = animationState.animationStep - explorationSize;
-                const auto position = appState.result.path[pathIndex];
-                animationState.animatedPath[position.first * COLS + position.second] = true;
-                break;
-            }
+            const int explorationSize = static_cast<int>(appState.result.explorationOrder.size());
+            const int pathIndex = animationState.animationStep - explorationSize;
+            const auto position = appState.result.path[pathIndex];
+            animationState.animatedPath[position.first * COLS + position.second] = true;
+            break;
         }
 
         case AnimationPhase::Finished:
