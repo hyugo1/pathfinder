@@ -9,6 +9,7 @@
 #include <limits>
 #include <chrono>
 #include <optional>
+#include <functional>
 
 using Position = std::pair<int, int>;// {row, col}
 
@@ -521,10 +522,11 @@ void handleKeyboard(AppState& appState, AnimationState& animationState, const st
             case sf::Keyboard::Key::C:
                 std::cout << "Clearing the entire grid.\n";
                 appState.gridChanged = true;
-                currentAlgo = Algorithm::None;
+                currentAlgo = Algorithm::None;\
+                appState.start = {-1, -1};
+                appState.end = {-1, -1};
                 
                 appState.statsRequested = false;
-                animationState.animationStep = 0;
 
                 resetGrid(appState.grid);
                 resetStartEnd(appState.grid);
@@ -633,7 +635,7 @@ double measureExecutionTime(std::function<void()> func) {
 }
 
 
-void displayPerformanceStats(AppState& appState, AnimationState& animationState,
+void displayPerformanceStats(AppState& appState,
                                 const Algorithm& currentAlgo) {
     double executionTime = measureExecutionTime([&]() {
         runAlgorithm(appState, currentAlgo);
@@ -678,7 +680,7 @@ void updateAnimation(AnimationState& animationState, const AppState& appState) {
 
         case AnimationPhase::Finished:
             return;
-        }
+    }
     ++animationState.animationStep;
     animationState.clock.restart();
 }
@@ -694,7 +696,7 @@ void eventGUI(sf::RenderWindow& window, AppState& appState, AnimationState& anim
     }
 
     if (appState.gridChanged) {
-        displayPerformanceStats(appState, animationState, currentAlgo);
+        displayPerformanceStats(appState, currentAlgo);
 
         resetAnimationStates(animationState);
         appState.gridChanged = false;
