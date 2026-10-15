@@ -152,9 +152,13 @@ bool isValidNeighbor(const AppState& appstate, int row, int col) {
     return isInBounds(appstate.grid, row, col) && appstate.grid[row][col] != CellType::Wall;
 }
 
+auto createVisitedMatrix(int rows, int cols) {
+    return std::vector<std::vector<bool>>(rows, std::vector<bool>(cols, false));
+}
+
 SearchResult bfs(AppState& appstate) {
     SearchState searchState = createSearchState(appstate.grid);
-    std::vector<std::vector<bool>> visited(appstate.grid.size(), std::vector<bool>(appstate.grid[0].size(), false)); //[[False for _ in range(cols)] for _ in range(rows)]
+    std::vector<std::vector<bool>> visited = createVisitedMatrix(appstate.grid.size(), appstate.grid[0].size());
 
     std::queue<Position> q;
     q.push(appstate.start);
@@ -188,7 +192,7 @@ SearchResult bfs(AppState& appstate) {
 
 SearchResult iterativeDfs(AppState& appstate) {
     SearchState searchState = createSearchState(appstate.grid);
-    std::vector<std::vector<bool>> visited(appstate.grid.size(), std::vector<bool>(appstate.grid[0].size(), false)); //[[False for _ in range(cols)] for _ in range(rows)]
+    std::vector<std::vector<bool>> visited = createVisitedMatrix(appstate.grid.size(), appstate.grid[0].size());
 
     std::stack<Position> st;
     st.push(appstate.start);
@@ -246,10 +250,8 @@ SearchResult aStar(AppState& appstate) {
         auto [f, current] = pq.top();
         pq.pop();
         
-        int currentx = current.first;
-        int currenty = current.second;
-        int hCost = calculateHeuristic({currentx, currenty}, appstate.end);
-        if (f > gCost[currentx][currenty] + hCost) {
+        int hCost = calculateHeuristic({current.first, current.second}, appstate.end);
+        if (f > gCost[current.first][current.second] + hCost) {
             continue; // skip outdated entry
         }
         searchState.exploredCount++;
@@ -261,14 +263,14 @@ SearchResult aStar(AppState& appstate) {
         
         int costtomove = 1;
         for (int i = 0; i < 4; ++i) {
-            int nr = currentx + DIRECTIONS[i].first;
-            int nc = currenty + DIRECTIONS[i].second;
+            int nr = current.first + DIRECTIONS[i].first;
+            int nc = current.second + DIRECTIONS[i].second;
 
             if (!isValidNeighbor(appstate, nr, nc)) {
                 continue;
             }
             
-            int tentativeG = gCost[currentx][currenty] + costtomove; // distance from Start node to current node. cheapest way to get from start to current node. 
+            int tentativeG = gCost[current.first][current.second] + costtomove; // distance from Start node to current node. cheapest way to get from start to current node. 
             if (tentativeG < gCost[nr][nc]) { // if the new path to neighbor is cheaper than any previous one
                 gCost[nr][nc] = tentativeG; // update the cost to reach this neighbor
                 searchState.cameFrom[nr][nc] = current; // update the path to reach this neighbor
