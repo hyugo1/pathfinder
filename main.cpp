@@ -148,14 +148,8 @@ std::vector<Position> reconstructPath(const std::vector<std::vector<Position>>& 
     return path;
 }
 
-bool reachedGoal(const Position& current, const Position& goal) {
-    return current == goal;
-}
-
-bool isValidNeighbor(const AppState& appstate, const std::vector<std::vector<bool>>& visited, int row, int col) {
-    return isInBounds(appstate.grid, row, col)
-        && !visited[row][col]
-        && appstate.grid[row][col] != CellType::Wall;
+bool isValidNeighbor(const AppState& appstate, int row, int col) {
+    return isInBounds(appstate.grid, row, col) && appstate.grid[row][col] != CellType::Wall;
 }
 
 SearchResult bfs(AppState& appstate) {
@@ -172,7 +166,7 @@ SearchResult bfs(AppState& appstate) {
         searchState.explorationOrder.push_back(current);
         q.pop();
 
-        if (reachedGoal(current, appstate.end)) {
+        if (current == appstate.end) {
             return {reconstructPath(searchState.cameFrom, appstate.end), searchState.exploredCount, searchState.explorationOrder};
         }
 
@@ -180,7 +174,7 @@ SearchResult bfs(AppState& appstate) {
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
-            if (isValidNeighbor(appstate, visited, nr, nc)) {
+            if (isValidNeighbor(appstate, nr, nc) && !visited[nr][nc]) {
                 visited[nr][nc] = true;
                 // to get from this place, we came from the current
                 searchState.cameFrom[nr][nc] = current;
@@ -205,7 +199,7 @@ SearchResult iterativeDfs(AppState& appstate) {
         st.pop();
         searchState.exploredCount++;
         searchState.explorationOrder.push_back(current);
-        if (reachedGoal(current, appstate.end)) {
+        if (current == appstate.end) {
             return {reconstructPath(searchState.cameFrom, appstate.end), searchState.exploredCount, searchState.explorationOrder};
         }
 
@@ -215,7 +209,7 @@ SearchResult iterativeDfs(AppState& appstate) {
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
-            if (isValidNeighbor(appstate, visited, nr, nc)) {
+            if (isValidNeighbor(appstate, nr, nc) && !visited[nr][nc]) {
                 visited[nr][nc] = true;
                 searchState.cameFrom[nr][nc] = current;
                 st.push({nr, nc});
@@ -224,6 +218,10 @@ SearchResult iterativeDfs(AppState& appstate) {
     }
 
     return {{}, searchState.exploredCount, searchState.explorationOrder}; // no path found
+}
+
+int calculateHeuristic(const Position& current, const Position& goal) {
+    return abs(goal.first - current.first) + abs(goal.second - current.second); // Manhattan distance
 }
 
 // Out of all the places I could go next, which one seems closest to the goal while also not being too expensive so far?
@@ -239,7 +237,7 @@ SearchResult aStar(AppState& appstate) {
 
     std::priority_queue<std::pair<int, Position>, std::vector<std::pair<int, Position>>, std::greater<>> pq;//std::greater makes it a minheap.default is maxheap.
     
-    int hStart = abs(appstate.end.first - appstate.start.first) + abs(appstate.end.second - appstate.start.second);
+    int hStart = calculateHeuristic(appstate.start, appstate.end);
     pq.push({hStart, appstate.start});
 
     gCost[appstate.start.first][appstate.start.second] = 0;
@@ -250,14 +248,14 @@ SearchResult aStar(AppState& appstate) {
         
         int currentx = current.first;
         int currenty = current.second;
-        int hCost = abs(appstate.end.first - currentx) + abs(appstate.end.second - currenty);
+        int hCost = calculateHeuristic({currentx, currenty}, appstate.end);
         if (f > gCost[currentx][currenty] + hCost) {
             continue; // skip outdated entry
         }
         searchState.exploredCount++;
         searchState.explorationOrder.push_back(current);
         
-        if (reachedGoal(current, appstate.end)) {
+        if (current == appstate.end) {
             return {reconstructPath(searchState.cameFrom, appstate.end), searchState.exploredCount, searchState.explorationOrder};
         }
         
@@ -265,7 +263,8 @@ SearchResult aStar(AppState& appstate) {
         for (int i = 0; i < 4; ++i) {
             int nr = currentx + DIRECTIONS[i].first;
             int nc = currenty + DIRECTIONS[i].second;
-            if (!isInBounds(appstate.grid, nr, nc) || appstate.grid[nr][nc] == CellType::Wall) {
+
+            if (!isValidNeighbor(appstate, nr, nc)) {
                 continue;
             }
             
@@ -273,7 +272,7 @@ SearchResult aStar(AppState& appstate) {
             if (tentativeG < gCost[nr][nc]) { // if the new path to neighbor is cheaper than any previous one
                 gCost[nr][nc] = tentativeG; // update the cost to reach this neighbor
                 searchState.cameFrom[nr][nc] = current; // update the path to reach this neighbor
-                int hCost = abs(appstate.end.first - nr) + abs(appstate.end.second - nc); // heuristic cost to end node
+                int hCost = calculateHeuristic({nr, nc}, appstate.end); // heuristic cost to end node
                 int fCost = tentativeG + hCost; // fCost = gCost + hCost
                 
                 pq.push({fCost, {nr, nc}}); // push the neighbor with its fCost as priority
