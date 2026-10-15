@@ -539,13 +539,25 @@ void handleKeyboard(AppState& appState, AnimationState& animationState, const st
     }
 }
 
-void setCellType(AppState& appState, AnimationState& animationState, int row, int col, CellType currentCellType) {
-    switch(currentCellType) {
+void setCellType(AppState& appState, AnimationState& animationState, int row, int col, CellType requestedCellType) {
+    switch(requestedCellType) {
         case CellType::Open:
             appState.grid[row][col] = CellType::Wall;
+            appState.statsRequested = false;
             break;
         case CellType::Wall:
-            appState.grid[row][col] = CellType::Open;
+            if (appState.grid[row][col] == CellType::Wall) {
+                appState.grid[row][col] = CellType::Open;
+            } else {
+                appState.grid[row][col] = CellType::Wall;
+            }
+
+            if (appState.grid[row][col] == CellType::Start || appState.grid[row][col] == CellType::End) {
+                std::cout << "Cannot set Wall on Start or End.\n";
+                return;
+            }
+
+            appState.statsRequested = false;
             break;
         case CellType::Start:
             if (appState.grid[row][col] == CellType::End) {
@@ -557,6 +569,7 @@ void setCellType(AppState& appState, AnimationState& animationState, int row, in
                     if (c == CellType::Start) c = CellType::Open;
             
             appState.grid[row][col] = CellType::Start;
+            appState.statsRequested = true;
             appState.start = {row, col};
             break;
         case CellType::End:
@@ -569,13 +582,14 @@ void setCellType(AppState& appState, AnimationState& animationState, int row, in
                     if (c == CellType::End) c = CellType::Open;
 
             appState.grid[row][col] = CellType::End;
+            appState.statsRequested = true;
             appState.end = {row, col};
             break;
         default:
             std::cout << "Unknown cell type.\n";
             break;
     }
-    appState.statsRequested = true;
+
     appState.gridChanged = true;
     resetSearch(appState.result, animationState);
 }
