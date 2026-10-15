@@ -705,7 +705,7 @@ void eventGUI(sf::RenderWindow& window, AppState& appState, AnimationState& anim
 
 
 
-void setCellColor(sf::RectangleShape& cell, CellType cellType, const AppState& appState, const AnimationState& animationState, int row, int col) {
+void setCellColor(sf::RectangleShape& cell, CellType cellType, const AnimationState& animationState, int row, int col) {
     switch (cellType) {
         case CellType::Open:  cell.setFillColor(sf::Color::White); break;
         case CellType::Wall:  cell.setFillColor(sf::Color::Black); break;
@@ -715,11 +715,11 @@ void setCellColor(sf::RectangleShape& cell, CellType cellType, const AppState& a
         case CellType::End:   cell.setFillColor(sf::Color::Blue); break;
     }
 
-    if (animationState.animatedGrid[row][col] && appState.grid[row][col] != CellType::Start && appState.grid[row][col] != CellType::End) {
+    if (animationState.animatedGrid[row][col] && cellType != CellType::Start && cellType != CellType::End) {
         cell.setFillColor(sf::Color::Cyan);
     }
     
-    if (animationState.animatedPath[row * COLS + col] && appState.grid[row][col] != CellType::Start && appState.grid[row][col] != CellType::End) {
+    if (animationState.animatedPath[row * COLS + col] && cellType != CellType::Start && cellType != CellType::End) {
         cell.setFillColor(sf::Color::Red);
     }
 }
@@ -731,7 +731,7 @@ void renderGUI(sf::RenderWindow& window, const AppState& appState, const Animati
             sf::RectangleShape cell({CELL_SIZE, CELL_SIZE});
             cell.setPosition({col * CELL_SIZE * 1.f, row * CELL_SIZE * 1.f});
 
-            setCellColor(cell, appState.grid[row][col], appState, animationState, row, col);
+            setCellColor(cell, appState.grid[row][col], animationState, row, col);
 
             cell.setOutlineThickness(1);
             cell.setOutlineColor(sf::Color(200, 200, 200));
