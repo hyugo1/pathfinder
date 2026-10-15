@@ -522,7 +522,7 @@ void handleKeyboard(AppState& appState, AnimationState& animationState, const st
             case sf::Keyboard::Key::C:
                 std::cout << "Clearing the entire grid.\n";
                 appState.gridChanged = true;
-                currentAlgo = Algorithm::None;\
+                currentAlgo = Algorithm::None;
                 appState.start = {-1, -1};
                 appState.end = {-1, -1};
                 
@@ -548,15 +548,15 @@ void setCellType(AppState& appState, AnimationState& animationState, int row, in
             appState.statsRequested = false;
             break;
         case CellType::Wall:
+            if (appState.grid[row][col] == CellType::Start || appState.grid[row][col] == CellType::End) {
+                std::cout << "Cannot set Wall on Start or End.\n";
+                return;
+            }
+            
             if (appState.grid[row][col] == CellType::Wall) {
                 appState.grid[row][col] = CellType::Open;
             } else {
                 appState.grid[row][col] = CellType::Wall;
-            }
-
-            if (appState.grid[row][col] == CellType::Start || appState.grid[row][col] == CellType::End) {
-                std::cout << "Cannot set Wall on Start or End.\n";
-                return;
             }
 
             appState.statsRequested = false;
