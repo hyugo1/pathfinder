@@ -746,12 +746,7 @@ void handleGUI(AppState& appState,
     }
 }
 
-
-int main() {
-
-    AppState appState;
-    appState.grid = Grid(ROWS, std::vector<CellType>(COLS, CellType::Open));
-
+void runApp(AppState& appState) {
     int choice {};
     std::cout << "Choose mode: 1 for Terminal, 2 for GUI: ";
     std::cin >> choice;
@@ -764,5 +759,14 @@ int main() {
         );
         handleGUI(appState, window);
     }
+}
+
+
+int main() {
+
+    AppState appState;
+    appState.grid = Grid(ROWS, std::vector<CellType>(COLS, CellType::Open));
+
+    runApp(appState);
     return 0;
 }
