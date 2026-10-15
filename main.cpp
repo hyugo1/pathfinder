@@ -12,9 +12,13 @@
 
 using Position = std::pair<int, int>;// {row, col}
 
-constexpr int ROWS = 20;
-constexpr int COLS = 20;
+constexpr int ROWS = 50;
+constexpr int COLS = 50;
 constexpr int CELL_SIZE = 30; // pixels per grid cell
+
+constexpr int ANIMATION_INTERVAL_MS = 1;
+
+enum class AnimationPhase { Exploring, DrawingPath, Finished };
 
 enum class CellType { Open, Wall, Start, End, Path, Explored };
 
@@ -369,6 +373,7 @@ void resetAnimationStates(AnimationState& animationState) {
     animationState.animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
     animationState.animatedPath = std::vector<bool>(ROWS * COLS, false);
     animationState.animationStep = 0;
+    animationState.clock.restart();
 }
 
 void resetSearch(SearchResult& result,
@@ -625,6 +630,45 @@ void displayPerformanceStats(AppState& appState, AnimationState& animationState,
     }
 }
 
+AnimationPhase getAnimationPhase(const AnimationState& animationState, const AppState& appState) {
+    const int explorationSize = static_cast<int>(appState.result.explorationOrder.size());
+    const int totalSteps = explorationSize + static_cast<int>(appState.result.path.size());
+    if (animationState.animationStep < explorationSize) {
+        return AnimationPhase::Exploring;
+    }
+    if (animationState.animationStep < totalSteps) {
+        return AnimationPhase::DrawingPath;
+    }
+    return AnimationPhase::Finished;
+}
+
+void updateAnimation(AnimationState& animationState, const AppState& appState) {
+    switch (getAnimationPhase(animationState, appState)) {
+        case AnimationPhase::Exploring: {
+            if (animationState.clock.getElapsedTime().asMilliseconds() > ANIMATION_INTERVAL_MS) {
+                const auto position = appState.result.explorationOrder[animationState.animationStep];
+                animationState.animatedGrid[position.first][position.second] = true;
+                break;
+            }
+        }   
+
+        case AnimationPhase::DrawingPath: {
+            if (animationState.clock.getElapsedTime().asMilliseconds() > ANIMATION_INTERVAL_MS) {
+                const int explorationSize = static_cast<int>(appState.result.explorationOrder.size());
+                const int pathIndex = animationState.animationStep - explorationSize;
+                const auto position = appState.result.path[pathIndex];
+                animationState.animatedPath[position.first * COLS + position.second] = true;
+                break;
+            }
+        }
+
+        case AnimationPhase::Finished:
+            return;
+        }
+    ++animationState.animationStep;
+    animationState.clock.restart();
+}
+
 void eventGUI(sf::RenderWindow& window, AppState& appState, AnimationState& animationState, const Algorithm& currentAlgo) {
     while (const std::optional event = window.pollEvent()) {
         if (event->is<sf::Event::Closed>()) {
@@ -639,28 +683,10 @@ void eventGUI(sf::RenderWindow& window, AppState& appState, AnimationState& anim
         displayPerformanceStats(appState, animationState, currentAlgo);
 
         resetAnimationStates(animationState);
-        animationState.clock.restart();
         appState.gridChanged = false;
     }
 
-    if (animationState.animationStep < static_cast<int>(appState.result.explorationOrder.size())) {
-        //only reveal a new cell every, say, 10-20 milliseconds, so a human can actually perceive the expansion.
-        if (animationState.clock.getElapsedTime().asMilliseconds() > 10) {
-            animationState.animatedGrid[appState.result.explorationOrder[animationState.animationStep].first][appState.result.explorationOrder[animationState.animationStep].second] = true;
-            animationState.animationStep++;
-            animationState.clock.restart();
-        }
-    }
-
-    if (animationState.animationStep >= static_cast<int>(appState.result.explorationOrder.size()) &&
-        animationState.animationStep < static_cast<int>(appState.result.explorationOrder.size() + appState.result.path.size())) {
-        if (animationState.clock.getElapsedTime().asMilliseconds() > 10) {
-            int pathIndex = animationState.animationStep - appState.result.explorationOrder.size();
-            animationState.animatedPath[appState.result.path[pathIndex].first * COLS + appState.result.path[pathIndex].second] = true;
-            animationState.animationStep++;
-            animationState.clock.restart();
-        }
-    }
+    updateAnimation(animationState, appState);
 }
 
 
@@ -684,7 +710,7 @@ void setCellColor(sf::RectangleShape& cell, CellType cellType, const AppState& a
     }
 }
 
-void renderGUI(const AppState& appState, const AnimationState& animationState, sf::RenderWindow& window) {
+void renderGUI(sf::RenderWindow& window, const AppState& appState, const AnimationState& animationState) {
     for (int row {0}; row < ROWS; ++row) {
         for (int col {0}; col < COLS; ++col) {
 
@@ -714,7 +740,7 @@ void handleGUI(AppState& appState,
         // --- RENDER ---
         window.clear(sf::Color::White);
 
-        renderGUI(appState, animationState, window);
+        renderGUI(window, appState, animationState);
 
         window.display();
     }
