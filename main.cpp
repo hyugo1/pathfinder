@@ -539,44 +539,44 @@ void handleKeyboard(AppState& appState, AnimationState& animationState, const st
     }
 }
 
-void setCellToWall(AppState& appState, AnimationState& animationState, int row, int col) {
-    // toggle wall
-    appState.grid[row][col] =
-        (appState.grid[row][col] == CellType::Wall)
-        ? CellType::Open
-        : CellType::Wall;
-    appState.statsRequested = false;
+void setCellType(AppState& appState, AnimationState& animationState, int row, int col, CellType currentCellType) {
+    switch(currentCellType) {
+        case CellType::Open:
+            appState.grid[row][col] = CellType::Wall;
+            break;
+        case CellType::Wall:
+            appState.grid[row][col] = CellType::Open;
+            break;
+        case CellType::Start:
+            if (appState.grid[row][col] == CellType::End) {
+                std::cout << "Cannot set Start on End.\n";
+                return;
+            }
+             for (auto& r : appState.grid)
+                for (auto& c : r)
+                    if (c == CellType::Start) c = CellType::Open;
+            
+            appState.grid[row][col] = CellType::Start;
+            appState.start = {row, col};
+            break;
+        case CellType::End:
+            if (appState.grid[row][col] == CellType::Start) {
+                std::cout << "Cannot set End on Start.\n";
+                return;
+            }
+            for (auto& r : appState.grid)
+                for (auto& c : r)
+                    if (c == CellType::End) c = CellType::Open;
+
+            appState.grid[row][col] = CellType::End;
+            appState.end = {row, col};
+            break;
+        default:
+            std::cout << "Unknown cell type.\n";
+            break;
+    }
+    appState.statsRequested = true;
     appState.gridChanged = true;
-    resetSearch(appState.result, animationState);
-}
-
-void setCellToStart(AppState& appState, AnimationState& animationState, int row, int col) {
-    for (auto& r : appState.grid)
-        for (auto& c : r)
-            if (c == CellType::Start) c = CellType::Open;
-
-    std::cout << "Setting Start position to (" << row << ", " << col << ").\n";
-    
-    appState.statsRequested = false;
-    appState.gridChanged = true;
-    appState.start = {row, col};
-    appState.grid[row][col] = CellType::Start;
-
-    resetSearch(appState.result, animationState);
-}
-
-void setCellToEnd(AppState& appState, AnimationState& animationState, int row, int col) {
-    for (auto& r : appState.grid)
-        for (auto& c : r)
-            if (c == CellType::End) c = CellType::Open;
-    
-    std::cout << "Setting End position to (" << row << ", " << col << ").\n";
-    
-    appState.statsRequested = false;
-    appState.gridChanged = true;
-    appState.end = {row, col};
-    appState.grid[row][col] = CellType::End;
-
     resetSearch(appState.result, animationState);
 }
 
@@ -587,14 +587,14 @@ void handleMouse(AppState& appState, AnimationState& animationState, const std::
 
         if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
             if (mousePressed->button == sf::Mouse::Button::Left) {
-                setCellToWall(appState, animationState, row, col);
+                setCellType(appState, animationState, row, col, CellType::Wall);
             }
             else if (mousePressed->button == sf::Mouse::Button::Right &&
                     sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift)) {
-                setCellToStart(appState, animationState, row, col);
+                setCellType(appState, animationState, row, col, CellType::Start);
             }
             else if (mousePressed->button == sf::Mouse::Button::Right) {
-                setCellToEnd(appState, animationState, row, col);
+                setCellType(appState, animationState, row, col, CellType::End);
             }
             else { 
                 std::cout << "Unknown mouse button pressed.\n";
