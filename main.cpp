@@ -543,16 +543,12 @@ void handleKeyboard(AppState& appState, AnimationState& animationState, const st
 
 void setCellType(AppState& appState, AnimationState& animationState, int row, int col, CellType requestedCellType) {
     switch(requestedCellType) {
-        case CellType::Open:
-            appState.grid[row][col] = CellType::Wall;
-            appState.statsRequested = false;
-            break;
         case CellType::Wall:
             if (appState.grid[row][col] == CellType::Start || appState.grid[row][col] == CellType::End) {
                 std::cout << "Cannot set Wall on Start or End.\n";
                 return;
             }
-            
+
             if (appState.grid[row][col] == CellType::Wall) {
                 appState.grid[row][col] = CellType::Open;
             } else {
