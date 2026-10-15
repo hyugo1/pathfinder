@@ -460,7 +460,7 @@ bool handleAlgorithmChoice(AppState& appState, int algorithmChoice) {
     return true;
 }
 
-void handleTerminal(AppState& appState) {
+void runTerminalMode(AppState& appState) {
     appState.grid = readFromFile("grids/biggrid.txt");
     
     if (!validateGrid(appState)) {
@@ -485,7 +485,7 @@ void resetGrid(Grid& grid) {
     }
 }
 
-void handleKeyboard(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event, sf::RenderWindow& window) {
+void handleKeyboardEvent(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event, sf::RenderWindow& window) {
     if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
         if ((keyPressed->code == sf::Keyboard::Key::Num1 ||
                 keyPressed->code == sf::Keyboard::Key::Num2 ||
@@ -590,7 +590,7 @@ void setCellType(AppState& appState, AnimationState& animationState, int row, in
     resetSearchState(appState.result, animationState);
 }
 
-void handleMouse(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event) {
+void handleMouseEvent(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event) {
     if (const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>()) {
         int col = mousePressed->position.x / CELL_SIZE;
         int row = mousePressed->position.y / CELL_SIZE;
@@ -630,10 +630,7 @@ double measureExecutionTime(std::function<void()> func) {
 
 
 void displayPerformanceStats(AppState& appState,
-                                const Algorithm& currentAlgo) {
-    double executionTime = measureExecutionTime([&]() {
-        runAlgorithm(appState, currentAlgo);
-    });
+                                const Algorithm& currentAlgo, double executionTime) {
 
     if (appState.statsRequested && currentAlgo != Algorithm::None) {
         printPerformanceStats(appState.result, currentAlgo, executionTime);
@@ -686,12 +683,16 @@ void eventGUI(sf::RenderWindow& window, AppState& appState, AnimationState& anim
             window.close();
         }
 
-        handleKeyboard(appState, animationState, event, window);
-        handleMouse(appState, animationState, event);
+        handleKeyboardEvent(appState, animationState, event, window);
+        handleMouseEvent(appState, animationState, event);
     }
 
     if (appState.gridChanged) {
-        displayPerformanceStats(appState, currentAlgo);
+        double executionTime = measureExecutionTime([&]() {
+            runAlgorithm(appState, currentAlgo);
+        });
+        
+        displayPerformanceStats(appState, currentAlgo, executionTime);
 
         resetAnimationStates(animationState);
         appState.gridChanged = false;
@@ -738,7 +739,7 @@ void renderGUI(sf::RenderWindow& window, const AppState& appState, const Animati
     }
 }
 
-void handleGUI(AppState& appState,
+void runGuiMode(AppState& appState,
                sf::RenderWindow& window) {
     
     AnimationState animationState;
@@ -762,13 +763,13 @@ void runApp(AppState& appState) {
     std::cout << "Choose mode: 1 for Terminal, 2 for GUI: ";
     std::cin >> choice;
     if (choice == 1) {
-        handleTerminal(appState);
+        runTerminalMode(appState);
     } else {
         sf::RenderWindow window(
             sf::VideoMode({COLS * CELL_SIZE, ROWS * CELL_SIZE}),
             "Pathfinding Visualizer"
         );
-        handleGUI(appState, window);
+        runGuiMode(appState, window);
     }
 }
 
