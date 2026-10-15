@@ -363,7 +363,7 @@ void runAlgorithm(AppState& appState, const Algorithm& algo) {
     }
 }
 
-std::string algoName(const Algorithm& algo) {
+std::string algorithmName(const Algorithm& algo) {
     switch (algo) {
         case Algorithm::DFS:
             return "DFS";
@@ -421,7 +421,7 @@ bool validateGrid(AppState& appState) {
     return true;
 }
 
-int askAlgorithm() {
+int askForAlgorithmChoice() {
     int algorithmChoice {};
     std::cout << "Which algorithm do you want to use? "; 
     for (int i = 1; i <= 3; ++i) {
@@ -432,7 +432,7 @@ int askAlgorithm() {
         std::cerr << "Invalid input. Please enter a number between 1 and 3.\n";
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        return askAlgorithm(); // recursively ask again
+        return askForAlgorithmChoice(); // recursively ask again
     }
 
     return algorithmChoice;
@@ -467,7 +467,7 @@ void runTerminalMode(AppState& appState) {
         return;
     }
 
-    int algorithmChoice {askAlgorithm()};
+    int algorithmChoice {askForAlgorithmChoice()};
     
     if (!handleAlgorithmChoice(appState, algorithmChoice)) {
         return;
@@ -501,19 +501,19 @@ void handleKeyboardEvent(AppState& appState, AnimationState& animationState, con
                 window.close();
                 break;
             case sf::Keyboard::Key::Num1:
-                std::cout << "Using " << algoName(Algorithm::DFS) << ".\n";
+                std::cout << "Using " << algorithmName(Algorithm::DFS) << ".\n";
                 currentAlgo = Algorithm::DFS;
                 appState.gridChanged = true;
                 appState.statsRequested = true;
                 break;
             case sf::Keyboard::Key::Num2:
-                std::cout << "Using " << algoName(Algorithm::BFS) << ".\n";
+                std::cout << "Using " << algorithmName(Algorithm::BFS) << ".\n";
                 currentAlgo = Algorithm::BFS;
                 appState.gridChanged = true;
                 appState.statsRequested = true;
                 break;
             case sf::Keyboard::Key::Num3:
-                std::cout << "Using " << algoName(Algorithm::AStar) << ".\n";
+                std::cout << "Using " << algorithmName(Algorithm::AStar) << ".\n";
                 currentAlgo = Algorithm::AStar;
                 appState.gridChanged = true;
                 appState.statsRequested = true;
@@ -539,7 +539,7 @@ void handleKeyboardEvent(AppState& appState, AnimationState& animationState, con
     }
 }
 
-void setCellType(AppState& appState, AnimationState& animationState, int row, int col, CellType requestedCellType) {
+void updateCellType(AppState& appState, AnimationState& animationState, int row, int col, CellType requestedCellType) {
     switch(requestedCellType) {
         case CellType::Wall:
             if (appState.grid[row][col] == CellType::Start || appState.grid[row][col] == CellType::End) {
@@ -597,14 +597,14 @@ void handleMouseEvent(AppState& appState, AnimationState& animationState, const 
 
         if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
             if (mousePressed->button == sf::Mouse::Button::Left) {
-                setCellType(appState, animationState, row, col, CellType::Wall);
+                updateCellType(appState, animationState, row, col, CellType::Wall);
             }
             else if (mousePressed->button == sf::Mouse::Button::Right &&
                     sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift)) {
-                setCellType(appState, animationState, row, col, CellType::Start);
+                updateCellType(appState, animationState, row, col, CellType::Start);
             }
             else if (mousePressed->button == sf::Mouse::Button::Right) {
-                setCellType(appState, animationState, row, col, CellType::End);
+                updateCellType(appState, animationState, row, col, CellType::End);
             }
             else { 
                 std::cout << "Unknown mouse button pressed.\n";
@@ -615,7 +615,7 @@ void handleMouseEvent(AppState& appState, AnimationState& animationState, const 
 
 void printPerformanceStats(const SearchResult& result, const Algorithm& currentAlgo, double executionTime) {
     std::cout << "\n--- Performance Stats ---\n";
-    std::cout << "Algorithm: " << algoName(currentAlgo) << "\n";
+    std::cout << "Algorithm: " << algorithmName(currentAlgo) << "\n";
     std::cout << "Execution Time: " << executionTime << " ms\n";
     std::cout << "Total Nodes Explored: " << result.totalNodesExplored << "\n";
     std::cout << "Path Length: " << result.path.size() << "\n";
