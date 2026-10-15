@@ -148,6 +148,16 @@ std::vector<Position> reconstructPath(const std::vector<std::vector<Position>>& 
     return path;
 }
 
+bool reachedGoal(const Position& current, const Position& goal) {
+    return current == goal;
+}
+
+bool isValidNeighbor(const AppState& appstate, const std::vector<std::vector<bool>>& visited, int row, int col) {
+    return isInBounds(appstate.grid, row, col)
+        && !visited[row][col]
+        && appstate.grid[row][col] != CellType::Wall;
+}
+
 SearchResult bfs(AppState& appstate) {
     SearchState searchState = createSearchState(appstate.grid);
     std::vector<std::vector<bool>> visited(appstate.grid.size(), std::vector<bool>(appstate.grid[0].size(), false)); //[[False for _ in range(cols)] for _ in range(rows)]
@@ -162,7 +172,7 @@ SearchResult bfs(AppState& appstate) {
         searchState.explorationOrder.push_back(current);
         q.pop();
 
-        if (current == appstate.end) {
+        if (reachedGoal(current, appstate.end)) {
             return {reconstructPath(searchState.cameFrom, appstate.end), searchState.exploredCount, searchState.explorationOrder};
         }
 
@@ -170,7 +180,7 @@ SearchResult bfs(AppState& appstate) {
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
-            if (isInBounds(appstate.grid, nr, nc) && !visited[nr][nc] && appstate.grid[nr][nc] != CellType::Wall) {
+            if (isValidNeighbor(appstate, visited, nr, nc)) {
                 visited[nr][nc] = true;
                 // to get from this place, we came from the current
                 searchState.cameFrom[nr][nc] = current;
@@ -195,7 +205,7 @@ SearchResult iterativeDfs(AppState& appstate) {
         st.pop();
         searchState.exploredCount++;
         searchState.explorationOrder.push_back(current);
-        if (current == appstate.end) {
+        if (reachedGoal(current, appstate.end)) {
             return {reconstructPath(searchState.cameFrom, appstate.end), searchState.exploredCount, searchState.explorationOrder};
         }
 
@@ -205,7 +215,7 @@ SearchResult iterativeDfs(AppState& appstate) {
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
-            if (isInBounds(appstate.grid, nr, nc) && !visited[nr][nc] && appstate.grid[nr][nc] != CellType::Wall) {
+            if (isValidNeighbor(appstate, visited, nr, nc)) {
                 visited[nr][nc] = true;
                 searchState.cameFrom[nr][nc] = current;
                 st.push({nr, nc});
@@ -247,7 +257,7 @@ SearchResult aStar(AppState& appstate) {
         searchState.exploredCount++;
         searchState.explorationOrder.push_back(current);
         
-        if (current == appstate.end) {
+        if (reachedGoal(current, appstate.end)) {
             return {reconstructPath(searchState.cameFrom, appstate.end), searchState.exploredCount, searchState.explorationOrder};
         }
         
