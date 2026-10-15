@@ -474,18 +474,6 @@ void resetGrid(Grid& grid) {
     }
 }
 
-void resetStartEnd(Grid& grid) {
-    for (int r = 0; r < ROWS; ++r) {
-        for (int c = 0; c < COLS; ++c) {
-            if (grid[r][c] == CellType::Start) {
-                grid[r][c] = CellType::Open;
-            } else if (grid[r][c] == CellType::End) {
-                grid[r][c] = CellType::Open;
-            }
-        }
-    }
-}
-
 void handleKeyboard(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event, sf::RenderWindow& window) {
     if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
         if ((keyPressed->code == sf::Keyboard::Key::Num1 ||
@@ -529,7 +517,6 @@ void handleKeyboard(AppState& appState, AnimationState& animationState, const st
                 appState.statsRequested = false;
 
                 resetGrid(appState.grid);
-                resetStartEnd(appState.grid);
                 resetSearch(appState.result, animationState);
                 break;
             case sf::Keyboard::Key::LShift:
@@ -764,7 +751,6 @@ int main() {
 
     AppState appState;
     appState.grid = Grid(ROWS, std::vector<CellType>(COLS, CellType::Open));
-    resetStartEnd(appState.grid);
 
     int choice {};
     std::cout << "Choose mode: 1 for Terminal, 2 for GUI: ";
