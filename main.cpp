@@ -156,7 +156,7 @@ auto createVisitedGrid(int rows, int cols) {
     return std::vector<std::vector<bool>>(rows, std::vector<bool>(cols, false));
 }
 
-SearchResult bfs(AppState& appstate) {
+SearchResult breadthFirstSearch(AppState& appstate) {
     SearchState searchState = initializeSearchState(appstate.grid);
     std::vector<std::vector<bool>> visited = createVisitedGrid(appstate.grid.size(), appstate.grid[0].size());
 
@@ -190,7 +190,7 @@ SearchResult bfs(AppState& appstate) {
     return {{}, searchState.exploredCount, searchState.explorationOrder}; // no path found
 }
 
-SearchResult iterativeDfs(AppState& appstate) {
+SearchResult depthFirstSearch(AppState& appstate) {
     SearchState searchState = initializeSearchState(appstate.grid);
     std::vector<std::vector<bool>> visited = createVisitedGrid(appstate.grid.size(), appstate.grid[0].size());
 
@@ -229,7 +229,7 @@ int manhattanDistance(const Position& current, const Position& goal) {
 }
 
 // Out of all the places I could go next, which one seems closest to the goal while also not being too expensive so far?
-SearchResult aStar(AppState& appstate) {
+SearchResult aStarSearch(AppState& appstate) {
     // * g(n) → how far I’ve actually moved from start
     // * h(n) → guess to the goal (Manhattan distance)
     // * f(n) = g + h → “how promising this path looks”
@@ -350,13 +350,13 @@ void runAlgorithm(AppState& appState, const Algorithm& algo) {
 
     switch (algo) {
         case Algorithm::DFS:
-            appState.result = iterativeDfs(appState);
+            appState.result = depthFirstSearch(appState);
             break;
         case Algorithm::BFS:
-            appState.result = bfs(appState);
+            appState.result = breadthFirstSearch(appState);
             break;
         case Algorithm::AStar:
-            appState.result = aStar(appState);
+            appState.result = aStarSearch(appState);
             break;
         default:
             break;
