@@ -57,7 +57,7 @@ struct AnimationState {
     sf::Clock clock;
 };
 
-SearchState createSearchState(const Grid& grid) {
+SearchState initializeSearchState(const Grid& grid) {
     return {
         std::vector<std::vector<Position>>(grid.size(), std::vector<Position>(grid[0].size(), {-1, -1})),
         0,
@@ -118,7 +118,7 @@ Grid readFromFile(std::string filename) {
     return grid;
 }
 
-Position findCell(const Grid& grid, CellType target) {
+Position findCellPosition(const Grid& grid, CellType target) {
     for (int r {0}; r < static_cast<int>(grid.size()); ++r) {
         for (int c {0}; c < static_cast<int>(grid[0].size()); ++c) {
             if (grid[r][c] == target) {
@@ -148,17 +148,17 @@ std::vector<Position> reconstructPath(const std::vector<std::vector<Position>>& 
     return path;
 }
 
-bool isValidNeighbor(const AppState& appstate, int row, int col) {
+bool isTraversable(const AppState& appstate, int row, int col) {
     return isInBounds(appstate.grid, row, col) && appstate.grid[row][col] != CellType::Wall;
 }
 
-auto createVisitedMatrix(int rows, int cols) {
+auto createVisitedGrid(int rows, int cols) {
     return std::vector<std::vector<bool>>(rows, std::vector<bool>(cols, false));
 }
 
 SearchResult bfs(AppState& appstate) {
-    SearchState searchState = createSearchState(appstate.grid);
-    std::vector<std::vector<bool>> visited = createVisitedMatrix(appstate.grid.size(), appstate.grid[0].size());
+    SearchState searchState = initializeSearchState(appstate.grid);
+    std::vector<std::vector<bool>> visited = createVisitedGrid(appstate.grid.size(), appstate.grid[0].size());
 
     std::queue<Position> q;
     q.push(appstate.start);
@@ -178,7 +178,7 @@ SearchResult bfs(AppState& appstate) {
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
-            if (isValidNeighbor(appstate, nr, nc) && !visited[nr][nc]) {
+            if (isTraversable(appstate, nr, nc) && !visited[nr][nc]) {
                 visited[nr][nc] = true;
                 // to get from this place, we came from the current
                 searchState.cameFrom[nr][nc] = current;
@@ -191,8 +191,8 @@ SearchResult bfs(AppState& appstate) {
 }
 
 SearchResult iterativeDfs(AppState& appstate) {
-    SearchState searchState = createSearchState(appstate.grid);
-    std::vector<std::vector<bool>> visited = createVisitedMatrix(appstate.grid.size(), appstate.grid[0].size());
+    SearchState searchState = initializeSearchState(appstate.grid);
+    std::vector<std::vector<bool>> visited = createVisitedGrid(appstate.grid.size(), appstate.grid[0].size());
 
     std::stack<Position> st;
     st.push(appstate.start);
@@ -213,7 +213,7 @@ SearchResult iterativeDfs(AppState& appstate) {
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
-            if (isValidNeighbor(appstate, nr, nc) && !visited[nr][nc]) {
+            if (isTraversable(appstate, nr, nc) && !visited[nr][nc]) {
                 visited[nr][nc] = true;
                 searchState.cameFrom[nr][nc] = current;
                 st.push({nr, nc});
@@ -224,7 +224,7 @@ SearchResult iterativeDfs(AppState& appstate) {
     return {{}, searchState.exploredCount, searchState.explorationOrder}; // no path found
 }
 
-int calculateHeuristic(const Position& current, const Position& goal) {
+int manhattanDistance(const Position& current, const Position& goal) {
     return abs(goal.first - current.first) + abs(goal.second - current.second); // Manhattan distance
 }
 
@@ -236,12 +236,12 @@ SearchResult aStar(AppState& appstate) {
     int rowCount = appstate.grid.size();
     int colCount = appstate.grid[0].size();
     
-    SearchState searchState = createSearchState(appstate.grid);
+    SearchState searchState = initializeSearchState(appstate.grid);
     std::vector<std::vector<int>> gCost(rowCount, std::vector<int>(colCount, std::numeric_limits<int>::max())); // cost from start to this node
 
     std::priority_queue<std::pair<int, Position>, std::vector<std::pair<int, Position>>, std::greater<>> pq;//std::greater makes it a minheap.default is maxheap.
     
-    int hStart = calculateHeuristic(appstate.start, appstate.end);
+    int hStart = manhattanDistance(appstate.start, appstate.end);
     pq.push({hStart, appstate.start});
 
     gCost[appstate.start.first][appstate.start.second] = 0;
@@ -250,7 +250,7 @@ SearchResult aStar(AppState& appstate) {
         auto [f, current] = pq.top();
         pq.pop();
         
-        int hCost = calculateHeuristic({current.first, current.second}, appstate.end);
+        int hCost = manhattanDistance({current.first, current.second}, appstate.end);
         if (f > gCost[current.first][current.second] + hCost) {
             continue; // skip outdated entry
         }
@@ -266,7 +266,7 @@ SearchResult aStar(AppState& appstate) {
             int nr = current.first + DIRECTIONS[i].first;
             int nc = current.second + DIRECTIONS[i].second;
 
-            if (!isValidNeighbor(appstate, nr, nc)) {
+            if (!isTraversable(appstate, nr, nc)) {
                 continue;
             }
             
@@ -274,7 +274,7 @@ SearchResult aStar(AppState& appstate) {
             if (tentativeG < gCost[nr][nc]) { // if the new path to neighbor is cheaper than any previous one
                 gCost[nr][nc] = tentativeG; // update the cost to reach this neighbor
                 searchState.cameFrom[nr][nc] = current; // update the path to reach this neighbor
-                int hCost = calculateHeuristic({nr, nc}, appstate.end); // heuristic cost to end node
+                int hCost = manhattanDistance({nr, nc}, appstate.end); // heuristic cost to end node
                 int fCost = tentativeG + hCost; // fCost = gCost + hCost
                 
                 pq.push({fCost, {nr, nc}}); // push the neighbor with its fCost as priority
@@ -375,7 +375,7 @@ std::string algoName(const Algorithm& algo) {
             return "None";
     }
 }
-void resetResults(SearchResult& result) {
+void clearSearchResult(SearchResult& result) {
     result.path.clear();
     result.explorationOrder.clear();
     result.totalNodesExplored = 0;
@@ -388,10 +388,10 @@ void resetAnimationStates(AnimationState& animationState) {
     animationState.clock.restart();
 }
 
-void resetSearch(SearchResult& result,
+void resetSearchState(SearchResult& result,
                  AnimationState& animationState) {
 
-    resetResults(result);
+    clearSearchResult(result);
     resetAnimationStates(animationState);
 }
 
@@ -401,8 +401,8 @@ bool validateGrid(AppState& appState) {
         return false;
     }
     
-    appState.start = findCell(appState.grid, CellType::Start);
-    appState.end = findCell(appState.grid, CellType::End);
+    appState.start = findCellPosition(appState.grid, CellType::Start);
+    appState.end = findCellPosition(appState.grid, CellType::End);
     
     if (appState.start.first == -1 || appState.end.first == -1) {
         std::cerr << "Start or End not found.\n";
@@ -528,7 +528,7 @@ void handleKeyboard(AppState& appState, AnimationState& animationState, const st
                 appState.statsRequested = false;
 
                 resetGrid(appState.grid);
-                resetSearch(appState.result, animationState);
+                resetSearchState(appState.result, animationState);
                 break;
             case sf::Keyboard::Key::LShift:
                 break;
@@ -587,7 +587,7 @@ void setCellType(AppState& appState, AnimationState& animationState, int row, in
     }
 
     appState.gridChanged = true;
-    resetSearch(appState.result, animationState);
+    resetSearchState(appState.result, animationState);
 }
 
 void handleMouse(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event) {
