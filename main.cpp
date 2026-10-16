@@ -292,49 +292,48 @@ std::ostream& operator<<(std::ostream& os, CellType cell) {
 }
 
 void printTerminalGridAndStats(Grid& copy, const SearchResult& result) {
-// void printTerminalGridAndStats(Grid& copy, const std::vector<Position>& path, const std::vector<Position>& explorationOrder) {
-    if (!result.path.empty()) {
-        for (const Position& position : result.explorationOrder) {
-            if (copy[position.first][position.second] != CellType::Start && copy[position.first][position.second] != CellType::End) {
-                copy[position.first][position.second] = CellType::Explored;
-            }
+    for (const Position& position : result.explorationOrder) {
+        if (copy[position.first][position.second] != CellType::Start && copy[position.first][position.second] != CellType::End) {
+            copy[position.first][position.second] = CellType::Explored;
         }
-        for (const Position& position : result.path) {
-            if (copy[position.first][position.second] != CellType::Start && copy[position.first][position.second] != CellType::End) {
-                copy[position.first][position.second] = CellType::Path;
-            }
+    }
+    for (const Position& position : result.path) {
+        if (copy[position.first][position.second] != CellType::Start && copy[position.first][position.second] != CellType::End) {
+            copy[position.first][position.second] = CellType::Path;
         }
-        const std::string RED = "\033[31m";
-        const std::string GREEN = "\033[32m";
-        const std::string BLUE = "\033[34m";
-        const std::string LIGHT_BLUE = "\033[36m";
-        const std::string RESET = "\033[0m";
-        
-        for (const auto& row : copy) {
-            for (const CellType cell : row) {
-                switch (cell) {
-                    case CellType::Explored:
-                        std::cout << LIGHT_BLUE << cell << RESET;
-                        break;
-                    case CellType::Path:
-                        std::cout << RED << cell << RESET;
-                        break;
-                    case CellType::Start:
-                        std::cout << GREEN << cell << RESET;
-                        break;
-                    case CellType::End:
-                        std::cout << BLUE << cell << RESET;
-                        break;
-                    default:
-                        std::cout << cell;
-                        break;
-                    }
+    }
+    const std::string RED = "\033[31m";
+    const std::string GREEN = "\033[32m";
+    const std::string BLUE = "\033[34m";
+    const std::string LIGHT_BLUE = "\033[36m";
+    const std::string RESET = "\033[0m";
+    
+    for (const auto& row : copy) {
+        for (const CellType cell : row) {
+            switch (cell) {
+                case CellType::Explored:
+                    std::cout << LIGHT_BLUE << cell << RESET;
+                    break;
+                case CellType::Path:
+                    std::cout << RED << cell << RESET;
+                    break;
+                case CellType::Start:
+                    std::cout << GREEN << cell << RESET;
+                    break;
+                case CellType::End:
+                    std::cout << BLUE << cell << RESET;
+                    break;
+                default:
+                    std::cout << cell;
+                    break;
                 }
-            std::cout << '\n';
             }
-        std::cout << "Explored: " << result.explorationOrder.size() << " nodes.\n";
+        std::cout << '\n';
+    }
+    std::cout << "Total Nodes Explored: " << result.explorationOrder.size() << ".\n";
+
+    if (!result.path.empty()) {
         std::cout << "Path Length: " << result.path.size() << ".\n";
-        
     } else {
         std::cout << "No path found.\n";
     }
@@ -686,8 +685,6 @@ void eventGUI(sf::RenderWindow& window, AppState& appState, AnimationState& anim
             runAlgorithm(appState, currentAlgo);
         });
         
-        // std::cout << appState.result.totalNodesExplored << " vs "
-        //   << appState.result.explorationOrder.size() << "\n";
           
         displayPerformanceStats(appState, currentAlgo, executionTime);
 
