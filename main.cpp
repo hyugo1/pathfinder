@@ -36,7 +36,6 @@ struct SearchResult {
 
 struct SearchState {
     std::vector<std::vector<Position>> cameFrom;
-    int exploredCount {0};
     std::vector<Position> explorationOrder;
 };
 
@@ -59,7 +58,6 @@ struct AnimationState {
 SearchState initializeSearchState(const Grid& grid) {
     return {
         std::vector<std::vector<Position>>(grid.size(), std::vector<Position>(grid[0].size(), {-1, -1})),
-        0,
         {}
     };
 }
@@ -293,7 +291,7 @@ std::ostream& operator<<(std::ostream& os, CellType cell) {
     return os;
 }
 
-void printTerminalGridAndStats(Grid& copy, SearchResult& result) {
+void printTerminalGridAndStats(Grid& copy, const SearchResult& result) {
 // void printTerminalGridAndStats(Grid& copy, const std::vector<Position>& path, const std::vector<Position>& explorationOrder) {
     if (!result.path.empty()) {
         for (const Position& position : result.explorationOrder) {
