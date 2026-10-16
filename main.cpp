@@ -30,7 +30,6 @@ using Grid = std::vector<std::vector<CellType>>;
 
 struct SearchResult {
     std::vector<Position> path;
-    // animation
     std::vector<Position> explorationOrder;
 };
 
@@ -220,7 +219,7 @@ SearchResult depthFirstSearch(AppState& appstate) {
 }
 
 int manhattanDistance(const Position& current, const Position& goal) {
-    return abs(goal.first - current.first) + abs(goal.second - current.second); // Manhattan distance
+    return std::abs(goal.first - current.first) + std::abs(goal.second - current.second); // Manhattan distance
 }
 
 // Out of all the places I could go next, which one seems closest to the goal while also not being too expensive so far?
@@ -622,7 +621,7 @@ double measureExecutionTime(std::function<void()> func) {
 }
 
 
-void displayPerformanceStats(AppState& appState,
+void displayPerformanceStats(const AppState& appState,
                                 const Algorithm& currentAlgo, double executionTime) {
 
     if (appState.statsRequested && currentAlgo != Algorithm::None) {
@@ -670,7 +669,7 @@ void updateAnimation(AnimationState& animationState, const AppState& appState) {
     animationState.clock.restart();
 }
 
-void eventGUI(sf::RenderWindow& window, AppState& appState, AnimationState& animationState, const Algorithm& currentAlgo) {
+void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationState& animationState, const Algorithm& currentAlgo) {
     while (const std::optional event = window.pollEvent()) {
         if (event->is<sf::Event::Closed>()) {
             window.close();
@@ -741,7 +740,7 @@ void runGuiMode(AppState& appState,
     while (window.isOpen()) {
 
         // --- EVENT ---
-        eventGUI(window, appState, animationState, currentAlgo);
+        processGUIFrame(window, appState, animationState, currentAlgo);
 
         // --- RENDER ---
         window.clear(sf::Color::White);
