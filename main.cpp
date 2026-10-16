@@ -30,14 +30,11 @@ using Grid = std::vector<std::vector<CellType>>;
 
 struct SearchResult {
     std::vector<Position> path;
-    int totalNodesExplored {0};
-    // animation
     std::vector<Position> explorationOrder;
 };
 
 struct SearchState {
     std::vector<std::vector<Position>> cameFrom;
-    int exploredCount {0};
     std::vector<Position> explorationOrder;
 };
 
@@ -57,10 +54,9 @@ struct AnimationState {
     sf::Clock clock;
 };
 
-SearchState createSearchState(const Grid& grid) {
+SearchState initializeSearchState(const Grid& grid) {
     return {
         std::vector<std::vector<Position>>(grid.size(), std::vector<Position>(grid[0].size(), {-1, -1})),
-        0,
         {}
     };
 }
@@ -118,7 +114,7 @@ Grid readFromFile(std::string filename) {
     return grid;
 }
 
-Position findCell(const Grid& grid, CellType target) {
+Position findCellPosition(const Grid& grid, CellType target) {
     for (int r {0}; r < static_cast<int>(grid.size()); ++r) {
         for (int c {0}; c < static_cast<int>(grid[0].size()); ++c) {
             if (grid[r][c] == target) {
@@ -148,9 +144,17 @@ std::vector<Position> reconstructPath(const std::vector<std::vector<Position>>& 
     return path;
 }
 
-SearchResult bfs(AppState& appstate) {
-    SearchState searchState = createSearchState(appstate.grid);
-    std::vector<std::vector<bool>> visited(appstate.grid.size(), std::vector<bool>(appstate.grid[0].size(), false)); //[[False for _ in range(cols)] for _ in range(rows)]
+bool isTraversable(const AppState& appstate, int row, int col) {
+    return isInBounds(appstate.grid, row, col) && appstate.grid[row][col] != CellType::Wall;
+}
+
+auto createVisitedGrid(int rows, int cols) {
+    return std::vector<std::vector<bool>>(rows, std::vector<bool>(cols, false));
+}
+
+SearchResult breadthFirstSearch(AppState& appstate) {
+    SearchState searchState = initializeSearchState(appstate.grid);
+    std::vector<std::vector<bool>> visited = createVisitedGrid(appstate.grid.size(), appstate.grid[0].size());
 
     std::queue<Position> q;
     q.push(appstate.start);
@@ -158,19 +162,18 @@ SearchResult bfs(AppState& appstate) {
 
     while (!q.empty()) {
         Position current = q.front();
-        searchState.exploredCount++;
         searchState.explorationOrder.push_back(current);
         q.pop();
 
         if (current == appstate.end) {
-            return {reconstructPath(searchState.cameFrom, appstate.end), searchState.exploredCount, searchState.explorationOrder};
+            return {reconstructPath(searchState.cameFrom, appstate.end), searchState.explorationOrder};
         }
 
         for (const Position& direction : DIRECTIONS) {
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
-            if (isInBounds(appstate.grid, nr, nc) && !visited[nr][nc] && appstate.grid[nr][nc] != CellType::Wall) {
+            if (isTraversable(appstate, nr, nc) && !visited[nr][nc]) {
                 visited[nr][nc] = true;
                 // to get from this place, we came from the current
                 searchState.cameFrom[nr][nc] = current;
@@ -179,12 +182,12 @@ SearchResult bfs(AppState& appstate) {
         }
     }
 
-    return {{}, searchState.exploredCount, searchState.explorationOrder}; // no path found
+    return {{}, searchState.explorationOrder}; // no path found
 }
 
-SearchResult iterativeDfs(AppState& appstate) {
-    SearchState searchState = createSearchState(appstate.grid);
-    std::vector<std::vector<bool>> visited(appstate.grid.size(), std::vector<bool>(appstate.grid[0].size(), false)); //[[False for _ in range(cols)] for _ in range(rows)]
+SearchResult depthFirstSearch(AppState& appstate) {
+    SearchState searchState = initializeSearchState(appstate.grid);
+    std::vector<std::vector<bool>> visited = createVisitedGrid(appstate.grid.size(), appstate.grid[0].size());
 
     std::stack<Position> st;
     st.push(appstate.start);
@@ -193,10 +196,9 @@ SearchResult iterativeDfs(AppState& appstate) {
     while (!st.empty()) {
         Position current = st.top();
         st.pop();
-        searchState.exploredCount++;
         searchState.explorationOrder.push_back(current);
         if (current == appstate.end) {
-            return {reconstructPath(searchState.cameFrom, appstate.end), searchState.exploredCount, searchState.explorationOrder};
+            return {reconstructPath(searchState.cameFrom, appstate.end), searchState.explorationOrder};
         }
 
         // backtrack in reverse order to maintain the original order of exploration
@@ -205,7 +207,7 @@ SearchResult iterativeDfs(AppState& appstate) {
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
-            if (isInBounds(appstate.grid, nr, nc) && !visited[nr][nc] && appstate.grid[nr][nc] != CellType::Wall) {
+            if (isTraversable(appstate, nr, nc) && !visited[nr][nc]) {
                 visited[nr][nc] = true;
                 searchState.cameFrom[nr][nc] = current;
                 st.push({nr, nc});
@@ -213,23 +215,27 @@ SearchResult iterativeDfs(AppState& appstate) {
         }
     }
 
-    return {{}, searchState.exploredCount, searchState.explorationOrder}; // no path found
+    return {{}, searchState.explorationOrder}; // no path found
+}
+
+int manhattanDistance(const Position& current, const Position& goal) {
+    return std::abs(goal.first - current.first) + std::abs(goal.second - current.second); // Manhattan distance
 }
 
 // Out of all the places I could go next, which one seems closest to the goal while also not being too expensive so far?
-SearchResult aStar(AppState& appstate) {
+SearchResult aStarSearch(AppState& appstate) {
     // * g(n) → how far I’ve actually moved from start
     // * h(n) → guess to the goal (Manhattan distance)
     // * f(n) = g + h → “how promising this path looks”
     int rowCount = appstate.grid.size();
     int colCount = appstate.grid[0].size();
     
-    SearchState searchState = createSearchState(appstate.grid);
+    SearchState searchState = initializeSearchState(appstate.grid);
     std::vector<std::vector<int>> gCost(rowCount, std::vector<int>(colCount, std::numeric_limits<int>::max())); // cost from start to this node
 
     std::priority_queue<std::pair<int, Position>, std::vector<std::pair<int, Position>>, std::greater<>> pq;//std::greater makes it a minheap.default is maxheap.
     
-    int hStart = abs(appstate.end.first - appstate.start.first) + abs(appstate.end.second - appstate.start.second);
+    int hStart = manhattanDistance(appstate.start, appstate.end);
     pq.push({hStart, appstate.start});
 
     gCost[appstate.start.first][appstate.start.second] = 0;
@@ -238,32 +244,30 @@ SearchResult aStar(AppState& appstate) {
         auto [f, current] = pq.top();
         pq.pop();
         
-        int currentx = current.first;
-        int currenty = current.second;
-        int hCost = abs(appstate.end.first - currentx) + abs(appstate.end.second - currenty);
-        if (f > gCost[currentx][currenty] + hCost) {
+        int hCost = manhattanDistance(current, appstate.end);
+        if (f > gCost[current.first][current.second] + hCost) {
             continue; // skip outdated entry
         }
-        searchState.exploredCount++;
         searchState.explorationOrder.push_back(current);
         
         if (current == appstate.end) {
-            return {reconstructPath(searchState.cameFrom, appstate.end), searchState.exploredCount, searchState.explorationOrder};
+            return {reconstructPath(searchState.cameFrom, appstate.end), searchState.explorationOrder};
         }
         
         int costtomove = 1;
         for (int i = 0; i < 4; ++i) {
-            int nr = currentx + DIRECTIONS[i].first;
-            int nc = currenty + DIRECTIONS[i].second;
-            if (!isInBounds(appstate.grid, nr, nc) || appstate.grid[nr][nc] == CellType::Wall) {
+            int nr = current.first + DIRECTIONS[i].first;
+            int nc = current.second + DIRECTIONS[i].second;
+
+            if (!isTraversable(appstate, nr, nc)) {
                 continue;
             }
             
-            int tentativeG = gCost[currentx][currenty] + costtomove; // distance from Start node to current node. cheapest way to get from start to current node. 
+            int tentativeG = gCost[current.first][current.second] + costtomove; // distance from Start node to current node. cheapest way to get from start to current node. 
             if (tentativeG < gCost[nr][nc]) { // if the new path to neighbor is cheaper than any previous one
                 gCost[nr][nc] = tentativeG; // update the cost to reach this neighbor
                 searchState.cameFrom[nr][nc] = current; // update the path to reach this neighbor
-                int hCost = abs(appstate.end.first - nr) + abs(appstate.end.second - nc); // heuristic cost to end node
+                int hCost = manhattanDistance({nr, nc}, appstate.end); // heuristic cost to end node
                 int fCost = tentativeG + hCost; // fCost = gCost + hCost
                 
                 pq.push({fCost, {nr, nc}}); // push the neighbor with its fCost as priority
@@ -271,7 +275,7 @@ SearchResult aStar(AppState& appstate) {
         }
     }
 
-    return {{}, searchState.exploredCount, searchState.explorationOrder}; // no path found
+    return {{}, searchState.explorationOrder}; // no path found
 }
 
 std::ostream& operator<<(std::ostream& os, CellType cell) {
@@ -286,52 +290,52 @@ std::ostream& operator<<(std::ostream& os, CellType cell) {
     return os;
 }
 
-void printTerminalGridAndStats(Grid& copy, const std::vector<Position>& path, const std::vector<Position>& explorationOrder) {
-    if (!path.empty()) {
-        for (const Position& position : explorationOrder) {
-            if (copy[position.first][position.second] != CellType::Start && copy[position.first][position.second] != CellType::End) {
-                copy[position.first][position.second] = CellType::Explored;
-            }
+void printTerminalGridAndStats(Grid& copy, const SearchResult& result) {
+    for (const Position& position : result.explorationOrder) {
+        if (copy[position.first][position.second] != CellType::Start && copy[position.first][position.second] != CellType::End) {
+            copy[position.first][position.second] = CellType::Explored;
         }
-        for (const Position& position : path) {
-            if (copy[position.first][position.second] != CellType::Start && copy[position.first][position.second] != CellType::End) {
-                copy[position.first][position.second] = CellType::Path;
-            }
+    }
+    for (const Position& position : result.path) {
+        if (copy[position.first][position.second] != CellType::Start && copy[position.first][position.second] != CellType::End) {
+            copy[position.first][position.second] = CellType::Path;
         }
-        const std::string RED = "\033[31m";
-        const std::string GREEN = "\033[32m";
-        const std::string BLUE = "\033[34m";
-        const std::string LIGHT_BLUE = "\033[36m";
-        const std::string RESET = "\033[0m";
-        
-        for (const auto& row : copy) {
-            for (const CellType cell : row) {
-                switch (cell) {
-                    case CellType::Explored:
-                        std::cout << LIGHT_BLUE << cell << RESET;
-                        break;
-                    case CellType::Path:
-                        std::cout << RED << cell << RESET;
-                        break;
-                    case CellType::Start:
-                        std::cout << GREEN << cell << RESET;
-                        break;
-                    case CellType::End:
-                        std::cout << BLUE << cell << RESET;
-                        break;
-                    default:
-                        std::cout << cell;
-                        break;
-                    }
+    }
+    const std::string RED = "\033[31m";
+    const std::string GREEN = "\033[32m";
+    const std::string BLUE = "\033[34m";
+    const std::string LIGHT_BLUE = "\033[36m";
+    const std::string RESET = "\033[0m";
+    
+    for (const auto& row : copy) {
+        for (const CellType cell : row) {
+            switch (cell) {
+                case CellType::Explored:
+                    std::cout << LIGHT_BLUE << cell << RESET;
+                    break;
+                case CellType::Path:
+                    std::cout << RED << cell << RESET;
+                    break;
+                case CellType::Start:
+                    std::cout << GREEN << cell << RESET;
+                    break;
+                case CellType::End:
+                    std::cout << BLUE << cell << RESET;
+                    break;
+                default:
+                    std::cout << cell;
+                    break;
                 }
-            std::cout << '\n';
             }
-        std::cout << "Explored: " << explorationOrder.size() << " nodes.\n";
-        std::cout << "Path Length: " << path.size() << ".\n";
-        
-        } else {
-            std::cout << "No path found.\n";
-        }
+        std::cout << '\n';
+    }
+    std::cout << "Total Nodes Explored: " << result.explorationOrder.size() << ".\n";
+
+    if (!result.path.empty()) {
+        std::cout << "Path Length: " << result.path.size() << ".\n";
+    } else {
+        std::cout << "No path found.\n";
+    }
 }
 
 void runAlgorithm(AppState& appState, const Algorithm& algo) {
@@ -339,20 +343,20 @@ void runAlgorithm(AppState& appState, const Algorithm& algo) {
 
     switch (algo) {
         case Algorithm::DFS:
-            appState.result = iterativeDfs(appState);
+            appState.result = depthFirstSearch(appState);
             break;
         case Algorithm::BFS:
-            appState.result = bfs(appState);
+            appState.result = breadthFirstSearch(appState);
             break;
         case Algorithm::AStar:
-            appState.result = aStar(appState);
+            appState.result = aStarSearch(appState);
             break;
         default:
             break;
     }
 }
 
-std::string algoName(const Algorithm& algo) {
+std::string algorithmName(const Algorithm& algo) {
     switch (algo) {
         case Algorithm::DFS:
             return "DFS";
@@ -364,10 +368,9 @@ std::string algoName(const Algorithm& algo) {
             return "None";
     }
 }
-void resetResults(SearchResult& result) {
+void clearSearchResult(SearchResult& result) {
     result.path.clear();
     result.explorationOrder.clear();
-    result.totalNodesExplored = 0;
 }
 
 void resetAnimationStates(AnimationState& animationState) {
@@ -377,10 +380,10 @@ void resetAnimationStates(AnimationState& animationState) {
     animationState.clock.restart();
 }
 
-void resetSearch(SearchResult& result,
+void resetSearchState(SearchResult& result,
                  AnimationState& animationState) {
 
-    resetResults(result);
+    clearSearchResult(result);
     resetAnimationStates(animationState);
 }
 
@@ -390,8 +393,8 @@ bool validateGrid(AppState& appState) {
         return false;
     }
     
-    appState.start = findCell(appState.grid, CellType::Start);
-    appState.end = findCell(appState.grid, CellType::End);
+    appState.start = findCellPosition(appState.grid, CellType::Start);
+    appState.end = findCellPosition(appState.grid, CellType::End);
     
     if (appState.start.first == -1 || appState.end.first == -1) {
         std::cerr << "Start or End not found.\n";
@@ -410,7 +413,7 @@ bool validateGrid(AppState& appState) {
     return true;
 }
 
-int askAlgorithm() {
+int askForAlgorithmChoice() {
     int algorithmChoice {};
     std::cout << "Which algorithm do you want to use? "; 
     for (int i = 1; i <= 3; ++i) {
@@ -421,7 +424,7 @@ int askAlgorithm() {
         std::cerr << "Invalid input. Please enter a number between 1 and 3.\n";
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        return askAlgorithm(); // recursively ask again
+        return askForAlgorithmChoice(); // recursively ask again
     }
 
     return algorithmChoice;
@@ -449,21 +452,21 @@ bool handleAlgorithmChoice(AppState& appState, int algorithmChoice) {
     return true;
 }
 
-void handleTerminal(AppState& appState) {
+void runTerminalMode(AppState& appState) {
     appState.grid = readFromFile("grids/biggrid.txt");
     
     if (!validateGrid(appState)) {
         return;
     }
 
-    int algorithmChoice {askAlgorithm()};
+    int algorithmChoice {askForAlgorithmChoice()};
     
     if (!handleAlgorithmChoice(appState, algorithmChoice)) {
         return;
     }
     
     Grid copy = appState.grid;
-    printTerminalGridAndStats(copy, appState.result.path, appState.result.explorationOrder);
+    printTerminalGridAndStats(copy, appState.result);
 }
 
 void resetGrid(Grid& grid) {
@@ -474,7 +477,7 @@ void resetGrid(Grid& grid) {
     }
 }
 
-void handleKeyboard(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event, sf::RenderWindow& window) {
+void handleKeyboardEvent(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event, sf::RenderWindow& window) {
     if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
         if ((keyPressed->code == sf::Keyboard::Key::Num1 ||
                 keyPressed->code == sf::Keyboard::Key::Num2 ||
@@ -490,19 +493,19 @@ void handleKeyboard(AppState& appState, AnimationState& animationState, const st
                 window.close();
                 break;
             case sf::Keyboard::Key::Num1:
-                std::cout << "Using " << algoName(Algorithm::DFS) << ".\n";
+                std::cout << "Using " << algorithmName(Algorithm::DFS) << ".\n";
                 currentAlgo = Algorithm::DFS;
                 appState.gridChanged = true;
                 appState.statsRequested = true;
                 break;
             case sf::Keyboard::Key::Num2:
-                std::cout << "Using " << algoName(Algorithm::BFS) << ".\n";
+                std::cout << "Using " << algorithmName(Algorithm::BFS) << ".\n";
                 currentAlgo = Algorithm::BFS;
                 appState.gridChanged = true;
                 appState.statsRequested = true;
                 break;
             case sf::Keyboard::Key::Num3:
-                std::cout << "Using " << algoName(Algorithm::AStar) << ".\n";
+                std::cout << "Using " << algorithmName(Algorithm::AStar) << ".\n";
                 currentAlgo = Algorithm::AStar;
                 appState.gridChanged = true;
                 appState.statsRequested = true;
@@ -517,7 +520,7 @@ void handleKeyboard(AppState& appState, AnimationState& animationState, const st
                 appState.statsRequested = false;
 
                 resetGrid(appState.grid);
-                resetSearch(appState.result, animationState);
+                resetSearchState(appState.result, animationState);
                 break;
             case sf::Keyboard::Key::LShift:
                 break;
@@ -528,7 +531,7 @@ void handleKeyboard(AppState& appState, AnimationState& animationState, const st
     }
 }
 
-void setCellType(AppState& appState, AnimationState& animationState, int row, int col, CellType requestedCellType) {
+void updateCellType(AppState& appState, AnimationState& animationState, int row, int col, CellType requestedCellType) {
     switch(requestedCellType) {
         case CellType::Wall:
             if (appState.grid[row][col] == CellType::Start || appState.grid[row][col] == CellType::End) {
@@ -576,24 +579,24 @@ void setCellType(AppState& appState, AnimationState& animationState, int row, in
     }
 
     appState.gridChanged = true;
-    resetSearch(appState.result, animationState);
+    resetSearchState(appState.result, animationState);
 }
 
-void handleMouse(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event) {
+void handleMouseEvent(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event) {
     if (const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>()) {
         int col = mousePressed->position.x / CELL_SIZE;
         int row = mousePressed->position.y / CELL_SIZE;
 
         if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
             if (mousePressed->button == sf::Mouse::Button::Left) {
-                setCellType(appState, animationState, row, col, CellType::Wall);
+                updateCellType(appState, animationState, row, col, CellType::Wall);
             }
             else if (mousePressed->button == sf::Mouse::Button::Right &&
                     sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift)) {
-                setCellType(appState, animationState, row, col, CellType::Start);
+                updateCellType(appState, animationState, row, col, CellType::Start);
             }
             else if (mousePressed->button == sf::Mouse::Button::Right) {
-                setCellType(appState, animationState, row, col, CellType::End);
+                updateCellType(appState, animationState, row, col, CellType::End);
             }
             else { 
                 std::cout << "Unknown mouse button pressed.\n";
@@ -604,9 +607,9 @@ void handleMouse(AppState& appState, AnimationState& animationState, const std::
 
 void printPerformanceStats(const SearchResult& result, const Algorithm& currentAlgo, double executionTime) {
     std::cout << "\n--- Performance Stats ---\n";
-    std::cout << "Algorithm: " << algoName(currentAlgo) << "\n";
+    std::cout << "Algorithm: " << algorithmName(currentAlgo) << "\n";
     std::cout << "Execution Time: " << executionTime << " ms\n";
-    std::cout << "Total Nodes Explored: " << result.totalNodesExplored << "\n";
+    std::cout << "Total Nodes Explored: " << result.explorationOrder.size() << "\n";
     std::cout << "Path Length: " << result.path.size() << "\n";
 }
 
@@ -618,11 +621,8 @@ double measureExecutionTime(std::function<void()> func) {
 }
 
 
-void displayPerformanceStats(AppState& appState,
-                                const Algorithm& currentAlgo) {
-    double executionTime = measureExecutionTime([&]() {
-        runAlgorithm(appState, currentAlgo);
-    });
+void displayPerformanceStats(const AppState& appState,
+                                const Algorithm& currentAlgo, double executionTime) {
 
     if (appState.statsRequested && currentAlgo != Algorithm::None) {
         printPerformanceStats(appState.result, currentAlgo, executionTime);
@@ -669,18 +669,23 @@ void updateAnimation(AnimationState& animationState, const AppState& appState) {
     animationState.clock.restart();
 }
 
-void eventGUI(sf::RenderWindow& window, AppState& appState, AnimationState& animationState, const Algorithm& currentAlgo) {
+void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationState& animationState, const Algorithm& currentAlgo) {
     while (const std::optional event = window.pollEvent()) {
         if (event->is<sf::Event::Closed>()) {
             window.close();
         }
 
-        handleKeyboard(appState, animationState, event, window);
-        handleMouse(appState, animationState, event);
+        handleKeyboardEvent(appState, animationState, event, window);
+        handleMouseEvent(appState, animationState, event);
     }
 
     if (appState.gridChanged) {
-        displayPerformanceStats(appState, currentAlgo);
+        double executionTime = measureExecutionTime([&]() {
+            runAlgorithm(appState, currentAlgo);
+        });
+        
+          
+        displayPerformanceStats(appState, currentAlgo, executionTime);
 
         resetAnimationStates(animationState);
         appState.gridChanged = false;
@@ -727,7 +732,7 @@ void renderGUI(sf::RenderWindow& window, const AppState& appState, const Animati
     }
 }
 
-void handleGUI(AppState& appState,
+void runGuiMode(AppState& appState,
                sf::RenderWindow& window) {
     
     AnimationState animationState;
@@ -735,7 +740,7 @@ void handleGUI(AppState& appState,
     while (window.isOpen()) {
 
         // --- EVENT ---
-        eventGUI(window, appState, animationState, currentAlgo);
+        processGUIFrame(window, appState, animationState, currentAlgo);
 
         // --- RENDER ---
         window.clear(sf::Color::White);
@@ -751,13 +756,13 @@ void runApp(AppState& appState) {
     std::cout << "Choose mode: 1 for Terminal, 2 for GUI: ";
     std::cin >> choice;
     if (choice == 1) {
-        handleTerminal(appState);
+        runTerminalMode(appState);
     } else {
         sf::RenderWindow window(
             sf::VideoMode({COLS * CELL_SIZE, ROWS * CELL_SIZE}),
             "Pathfinding Visualizer"
         );
-        handleGUI(appState, window);
+        runGuiMode(appState, window);
     }
 }
 
