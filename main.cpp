@@ -1,3 +1,6 @@
+// cmake --build build --clean-first  
+// ./build/main           
+
 #include <iostream>
 #include <SFML/Graphics.hpp>
 #include <vector>
@@ -5,6 +8,9 @@
 #include <array>
 #include <queue>
 #include <fstream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 #include <stack>
 #include <limits>
 #include <chrono>
@@ -144,36 +150,37 @@ std::vector<Position> reconstructPath(const std::vector<std::vector<Position>>& 
     return path;
 }
 
-bool isTraversable(const AppState& appstate, int row, int col) {
-    return isInBounds(appstate.grid, row, col) && appstate.grid[row][col] != CellType::Wall;
+bool isTraversable(const Grid& grid, int row, int col) {
+    return isInBounds(grid, row, col) && grid[row][col] != CellType::Wall;
 }
 
 auto createVisitedGrid(int rows, int cols) {
     return std::vector<std::vector<bool>>(rows, std::vector<bool>(cols, false));
 }
 
-SearchResult breadthFirstSearch(AppState& appstate) {
-    SearchState searchState = initializeSearchState(appstate.grid);
-    std::vector<std::vector<bool>> visited = createVisitedGrid(appstate.grid.size(), appstate.grid[0].size());
+// SearchResult breadthFirstSearch(AppState& appstate) {
+SearchResult breadthFirstSearch(const Grid& grid, Position start, Position end) {
+    SearchState searchState = initializeSearchState(grid);
+    std::vector<std::vector<bool>> visited = createVisitedGrid(grid.size(), grid[0].size());
 
     std::queue<Position> q;
-    q.push(appstate.start);
-    visited[appstate.start.first][appstate.start.second] = true;
+    q.push(start);
+    visited[start.first][start.second] = true;
 
     while (!q.empty()) {
         Position current = q.front();
         searchState.explorationOrder.push_back(current);
         q.pop();
 
-        if (current == appstate.end) {
-            return {reconstructPath(searchState.cameFrom, appstate.end), searchState.explorationOrder};
+        if (current == end) {
+            return {reconstructPath(searchState.cameFrom, end), searchState.explorationOrder};
         }
 
         for (const Position& direction : DIRECTIONS) {
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
-            if (isTraversable(appstate, nr, nc) && !visited[nr][nc]) {
+            if (isTraversable(grid, nr, nc) && !visited[nr][nc]) {
                 visited[nr][nc] = true;
                 // to get from this place, we came from the current
                 searchState.cameFrom[nr][nc] = current;
@@ -185,20 +192,20 @@ SearchResult breadthFirstSearch(AppState& appstate) {
     return {{}, searchState.explorationOrder}; // no path found
 }
 
-SearchResult depthFirstSearch(AppState& appstate) {
-    SearchState searchState = initializeSearchState(appstate.grid);
-    std::vector<std::vector<bool>> visited = createVisitedGrid(appstate.grid.size(), appstate.grid[0].size());
+SearchResult depthFirstSearch(const Grid& grid, Position start, Position end) {
+    SearchState searchState = initializeSearchState(grid);
+    std::vector<std::vector<bool>> visited = createVisitedGrid(grid.size(), grid[0].size());
 
     std::stack<Position> st;
-    st.push(appstate.start);
-    visited[appstate.start.first][appstate.start.second] = true;
+    st.push(start);
+    visited[start.first][start.second] = true;
 
     while (!st.empty()) {
         Position current = st.top();
         st.pop();
         searchState.explorationOrder.push_back(current);
-        if (current == appstate.end) {
-            return {reconstructPath(searchState.cameFrom, appstate.end), searchState.explorationOrder};
+        if (current == end) {
+            return {reconstructPath(searchState.cameFrom, end), searchState.explorationOrder};
         }
 
         // backtrack in reverse order to maintain the original order of exploration
@@ -207,7 +214,7 @@ SearchResult depthFirstSearch(AppState& appstate) {
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
-            if (isTraversable(appstate, nr, nc) && !visited[nr][nc]) {
+            if (isTraversable(grid, nr, nc) && !visited[nr][nc]) {
                 visited[nr][nc] = true;
                 searchState.cameFrom[nr][nc] = current;
                 st.push({nr, nc});
@@ -223,35 +230,33 @@ int manhattanDistance(const Position& current, const Position& goal) {
 }
 
 // Out of all the places I could go next, which one seems closest to the goal while also not being too expensive so far?
-SearchResult aStarSearch(AppState& appstate) {
+SearchResult aStarSearch(const Grid& grid, Position start, Position end) {
     // * g(n) → how far I’ve actually moved from start
     // * h(n) → guess to the goal (Manhattan distance)
     // * f(n) = g + h → “how promising this path looks”
-    int rowCount = appstate.grid.size();
-    int colCount = appstate.grid[0].size();
-    
-    SearchState searchState = initializeSearchState(appstate.grid);
+    int rowCount = grid.size();
+    int colCount = grid[0].size();
+    SearchState searchState = initializeSearchState(grid);
     std::vector<std::vector<int>> gCost(rowCount, std::vector<int>(colCount, std::numeric_limits<int>::max())); // cost from start to this node
-
     std::priority_queue<std::pair<int, Position>, std::vector<std::pair<int, Position>>, std::greater<>> pq;//std::greater makes it a minheap.default is maxheap.
     
-    int hStart = manhattanDistance(appstate.start, appstate.end);
-    pq.push({hStart, appstate.start});
+    int hStart = manhattanDistance(start, end);
+    pq.push({hStart, start});
 
-    gCost[appstate.start.first][appstate.start.second] = 0;
+    gCost[start.first][start.second] = 0;
 
     while (!pq.empty()) {
         auto [f, current] = pq.top();
         pq.pop();
         
-        int hCost = manhattanDistance(current, appstate.end);
+        int hCost = manhattanDistance(current, end);
         if (f > gCost[current.first][current.second] + hCost) {
             continue; // skip outdated entry
         }
         searchState.explorationOrder.push_back(current);
         
-        if (current == appstate.end) {
-            return {reconstructPath(searchState.cameFrom, appstate.end), searchState.explorationOrder};
+        if (current == end) {
+            return {reconstructPath(searchState.cameFrom, end), searchState.explorationOrder};
         }
         
         int costtomove = 1;
@@ -259,7 +264,7 @@ SearchResult aStarSearch(AppState& appstate) {
             int nr = current.first + DIRECTIONS[i].first;
             int nc = current.second + DIRECTIONS[i].second;
 
-            if (!isTraversable(appstate, nr, nc)) {
+            if (!isTraversable(grid, nr, nc)) {
                 continue;
             }
             
@@ -267,7 +272,7 @@ SearchResult aStarSearch(AppState& appstate) {
             if (tentativeG < gCost[nr][nc]) { // if the new path to neighbor is cheaper than any previous one
                 gCost[nr][nc] = tentativeG; // update the cost to reach this neighbor
                 searchState.cameFrom[nr][nc] = current; // update the path to reach this neighbor
-                int hCost = manhattanDistance({nr, nc}, appstate.end); // heuristic cost to end node
+                int hCost = manhattanDistance({nr, nc}, end); // heuristic cost to end node
                 int fCost = tentativeG + hCost; // fCost = gCost + hCost
                 
                 pq.push({fCost, {nr, nc}}); // push the neighbor with its fCost as priority
@@ -343,13 +348,13 @@ void runAlgorithm(AppState& appState, const Algorithm& algo) {
 
     switch (algo) {
         case Algorithm::DFS:
-            appState.result = depthFirstSearch(appState);
+            appState.result = depthFirstSearch(appState.grid, appState.start, appState.end);
             break;
         case Algorithm::BFS:
-            appState.result = breadthFirstSearch(appState);
+            appState.result = breadthFirstSearch(appState.grid, appState.start, appState.end);
             break;
         case Algorithm::AStar:
-            appState.result = aStarSearch(appState);
+            appState.result = aStarSearch(appState.grid, appState.start, appState.end);
             break;
         default:
             break;
@@ -775,3 +780,6 @@ int main() {
     runApp(appState);
     return 0;
 }
+
+
+// fixme: add button toggle to switch between threaded and non-threaded mode in GUI.
