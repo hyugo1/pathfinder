@@ -30,7 +30,6 @@ using Grid = std::vector<std::vector<CellType>>;
 
 struct SearchResult {
     std::vector<Position> path;
-    int totalNodesExplored {0};
     // animation
     std::vector<Position> explorationOrder;
 };
@@ -166,12 +165,11 @@ SearchResult breadthFirstSearch(AppState& appstate) {
 
     while (!q.empty()) {
         Position current = q.front();
-        searchState.exploredCount++;
         searchState.explorationOrder.push_back(current);
         q.pop();
 
         if (current == appstate.end) {
-            return {reconstructPath(searchState.cameFrom, appstate.end), searchState.exploredCount, searchState.explorationOrder};
+            return {reconstructPath(searchState.cameFrom, appstate.end), searchState.explorationOrder};
         }
 
         for (const Position& direction : DIRECTIONS) {
@@ -187,7 +185,7 @@ SearchResult breadthFirstSearch(AppState& appstate) {
         }
     }
 
-    return {{}, searchState.exploredCount, searchState.explorationOrder}; // no path found
+    return {{}, searchState.explorationOrder}; // no path found
 }
 
 SearchResult depthFirstSearch(AppState& appstate) {
@@ -201,10 +199,9 @@ SearchResult depthFirstSearch(AppState& appstate) {
     while (!st.empty()) {
         Position current = st.top();
         st.pop();
-        searchState.exploredCount++;
         searchState.explorationOrder.push_back(current);
         if (current == appstate.end) {
-            return {reconstructPath(searchState.cameFrom, appstate.end), searchState.exploredCount, searchState.explorationOrder};
+            return {reconstructPath(searchState.cameFrom, appstate.end), searchState.explorationOrder};
         }
 
         // backtrack in reverse order to maintain the original order of exploration
@@ -221,7 +218,7 @@ SearchResult depthFirstSearch(AppState& appstate) {
         }
     }
 
-    return {{}, searchState.exploredCount, searchState.explorationOrder}; // no path found
+    return {{}, searchState.explorationOrder}; // no path found
 }
 
 int manhattanDistance(const Position& current, const Position& goal) {
@@ -250,15 +247,14 @@ SearchResult aStarSearch(AppState& appstate) {
         auto [f, current] = pq.top();
         pq.pop();
         
-        int hCost = manhattanDistance({current.first, current.second}, appstate.end);
+        int hCost = manhattanDistance(current, appstate.end);
         if (f > gCost[current.first][current.second] + hCost) {
             continue; // skip outdated entry
         }
-        searchState.exploredCount++;
         searchState.explorationOrder.push_back(current);
         
         if (current == appstate.end) {
-            return {reconstructPath(searchState.cameFrom, appstate.end), searchState.exploredCount, searchState.explorationOrder};
+            return {reconstructPath(searchState.cameFrom, appstate.end), searchState.explorationOrder};
         }
         
         int costtomove = 1;
@@ -282,7 +278,7 @@ SearchResult aStarSearch(AppState& appstate) {
         }
     }
 
-    return {{}, searchState.exploredCount, searchState.explorationOrder}; // no path found
+    return {{}, searchState.explorationOrder}; // no path found
 }
 
 std::ostream& operator<<(std::ostream& os, CellType cell) {
@@ -297,14 +293,15 @@ std::ostream& operator<<(std::ostream& os, CellType cell) {
     return os;
 }
 
-void printTerminalGridAndStats(Grid& copy, const std::vector<Position>& path, const std::vector<Position>& explorationOrder) {
-    if (!path.empty()) {
-        for (const Position& position : explorationOrder) {
+void printTerminalGridAndStats(Grid& copy, SearchResult& result) {
+// void printTerminalGridAndStats(Grid& copy, const std::vector<Position>& path, const std::vector<Position>& explorationOrder) {
+    if (!result.path.empty()) {
+        for (const Position& position : result.explorationOrder) {
             if (copy[position.first][position.second] != CellType::Start && copy[position.first][position.second] != CellType::End) {
                 copy[position.first][position.second] = CellType::Explored;
             }
         }
-        for (const Position& position : path) {
+        for (const Position& position : result.path) {
             if (copy[position.first][position.second] != CellType::Start && copy[position.first][position.second] != CellType::End) {
                 copy[position.first][position.second] = CellType::Path;
             }
@@ -337,12 +334,12 @@ void printTerminalGridAndStats(Grid& copy, const std::vector<Position>& path, co
                 }
             std::cout << '\n';
             }
-        std::cout << "Explored: " << explorationOrder.size() << " nodes.\n";
-        std::cout << "Path Length: " << path.size() << ".\n";
+        std::cout << "Explored: " << result.explorationOrder.size() << " nodes.\n";
+        std::cout << "Path Length: " << result.path.size() << ".\n";
         
-        } else {
-            std::cout << "No path found.\n";
-        }
+    } else {
+        std::cout << "No path found.\n";
+    }
 }
 
 void runAlgorithm(AppState& appState, const Algorithm& algo) {
@@ -378,7 +375,6 @@ std::string algorithmName(const Algorithm& algo) {
 void clearSearchResult(SearchResult& result) {
     result.path.clear();
     result.explorationOrder.clear();
-    result.totalNodesExplored = 0;
 }
 
 void resetAnimationStates(AnimationState& animationState) {
@@ -474,7 +470,7 @@ void runTerminalMode(AppState& appState) {
     }
     
     Grid copy = appState.grid;
-    printTerminalGridAndStats(copy, appState.result.path, appState.result.explorationOrder);
+    printTerminalGridAndStats(copy, appState.result);
 }
 
 void resetGrid(Grid& grid) {
@@ -617,7 +613,7 @@ void printPerformanceStats(const SearchResult& result, const Algorithm& currentA
     std::cout << "\n--- Performance Stats ---\n";
     std::cout << "Algorithm: " << algorithmName(currentAlgo) << "\n";
     std::cout << "Execution Time: " << executionTime << " ms\n";
-    std::cout << "Total Nodes Explored: " << result.totalNodesExplored << "\n";
+    std::cout << "Total Nodes Explored: " << result.explorationOrder.size() << "\n";
     std::cout << "Path Length: " << result.path.size() << "\n";
 }
 
@@ -692,6 +688,9 @@ void eventGUI(sf::RenderWindow& window, AppState& appState, AnimationState& anim
             runAlgorithm(appState, currentAlgo);
         });
         
+        // std::cout << appState.result.totalNodesExplored << " vs "
+        //   << appState.result.explorationOrder.size() << "\n";
+          
         displayPerformanceStats(appState, currentAlgo, executionTime);
 
         resetAnimationStates(animationState);
