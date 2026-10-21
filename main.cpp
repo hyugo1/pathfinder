@@ -355,6 +355,10 @@ SearchResult runSearch(const Grid& grid, Position start, Position end, Algorithm
     }
 }
 
+void sleepForGuiUpdate(int seconds) {
+    std::this_thread::sleep_for(std::chrono::seconds(seconds));
+}
+
 struct Request
 {
     Grid grid;
@@ -420,7 +424,7 @@ private:
             pending_.reset();        // clear mailbox
             lock.unlock();           // slow part runs WITHOUT the lock
             
-            std::this_thread::sleep_for(std::chrono::seconds(THREAD_SLEEP_SECONDS));
+            sleepForGuiUpdate(THREAD_SLEEP_SECONDS); // simulate a delay for GUI visibility
             
             auto start = std::chrono::steady_clock::now();
             SearchResult result = runSearch(job.grid, job.start, job.end, job.algo);
@@ -792,6 +796,7 @@ void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationStat
                worker.submit(Request{appState.grid, appState.start, appState.end, currentAlgo, ++appState.latestVersion});
             }
         } else {
+            sleepForGuiUpdate(THREAD_SLEEP_SECONDS);
             double executionTime = measureExecutionTime([&]() {
                 runAlgorithm(appState, currentAlgo);
             });
