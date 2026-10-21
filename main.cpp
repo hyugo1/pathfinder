@@ -347,7 +347,6 @@ void printTerminalGridAndStats(Grid& copy, const SearchResult& result) {
 }
 
 SearchResult runSearch(const Grid& grid, Position start, Position end, Algorithm algo) {
-    std::this_thread::sleep_for(std::chrono::seconds(THREAD_SLEEP_SECONDS));
     switch (algo) {
         case Algorithm::DFS:   return depthFirstSearch(grid, start, end);
         case Algorithm::BFS:   return breadthFirstSearch(grid, start, end);
@@ -420,7 +419,9 @@ private:
             Request job = *pending_; // get the job out of the mailbox
             pending_.reset();        // clear mailbox
             lock.unlock();           // slow part runs WITHOUT the lock
-
+            
+            std::this_thread::sleep_for(std::chrono::seconds(THREAD_SLEEP_SECONDS));
+            
             auto start = std::chrono::steady_clock::now();
             SearchResult result = runSearch(job.grid, job.start, job.end, job.algo);
             double ms = std::chrono::duration<double, std::milli>(
