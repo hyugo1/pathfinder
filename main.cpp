@@ -10,6 +10,7 @@
 #include <fstream>
 #include <thread>
 #include <mutex>
+#include <atomic>
 #include <condition_variable>
 #include <stack>
 #include <limits>
@@ -19,10 +20,11 @@
 
 using Position = std::pair<int, int>;// {row, col}
 
-constexpr int ROWS = 50;
-constexpr int COLS = 50;
-constexpr int CELL_SIZE = 30; // pixels per grid cell
+constexpr int ROWS = 80;
+constexpr int COLS = 80;
+constexpr int CELL_SIZE = 20; // pixels per grid cell
 
+std::atomic<int> THREAD_SLEEP_SECONDS {0};//safe to read and write from several threads at once, with no lock needed
 constexpr int ANIMATION_INTERVAL_MS = 1;
 
 enum class AnimationPhase { Exploring, DrawingPath, Finished };
@@ -51,6 +53,7 @@ struct AppState {
     SearchResult result;
     bool gridChanged {false};
     bool statsRequested {false};
+    int latestVersion {0};
 };
 
 struct AnimationState {
@@ -343,22 +346,110 @@ void printTerminalGridAndStats(Grid& copy, const SearchResult& result) {
     }
 }
 
+SearchResult runSearch(const Grid& grid, Position start, Position end, Algorithm algo) {
+    std::this_thread::sleep_for(std::chrono::seconds(THREAD_SLEEP_SECONDS));
+    switch (algo) {
+        case Algorithm::DFS:   return depthFirstSearch(grid, start, end);
+        case Algorithm::BFS:   return breadthFirstSearch(grid, start, end);
+        case Algorithm::AStar: return aStarSearch(grid, start, end);
+        default:               return {};
+    }
+}
+
+struct Request
+{
+    Grid grid;
+    Position start;
+    Position end;
+    Algorithm algo;
+    int version;
+};
+
+struct Response
+{
+    SearchResult result;
+    double executionTimeMs;
+    int version;
+};
+
+class SearchWorker
+{
+public:
+    SearchWorker() : thread_(&SearchWorker::threadLoop, this) {} // starts the worker thread
+
+    ~SearchWorker()
+    { // It tells the worker to stop, then waits for it to finish.
+        {
+            std::lock_guard<std::mutex> lock(mutex_); //lock to write
+            stop_ = true; // writes
+        }
+        cv_.notify_one(); // Setting stop_ = true only changes a variable, and a sleeping thread doesn't notice. Without the notify it never wakes, so join() waits forever for a thread that is waiting to be woken.
+        thread_.join();
+    }
+
+    void submit(Request x)
+    { // the GUI puts a job in the mailbox and wakes the worker.
+        {
+            std::lock_guard<std::mutex> lock(mutex_);//lock to write
+            pending_ = std::move(x); // writes
+        }
+        cv_.notify_one();
+    }
+
+    //the GUI asks “is there an answer yet?” It returns immediately, either with the answer or with nothing
+    std::optional<Response> poll()
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        std::optional<Response> r = finished_; // reads the mailbox
+        finished_.reset(); // empties the mailbox
+        return r;
+    }
+
+private:
+    void threadLoop()
+    { // the worker's whole life. Sleep until there's a job, do it, leave the answer in the other mailbox, repeat.
+        while (true)
+        {
+            std::cout << "worker: going to sleep\n";
+            std::unique_lock<std::mutex> lock(mutex_);
+            cv_.wait(lock, [this] { return pending_.has_value() || stop_; }); // wait until there's a job or stop is requested
+            std::cout << "worker: woke up\n";
+            if (stop_)
+                return;
+
+            Request job = *pending_; // get the job out of the mailbox
+            pending_.reset();        // clear mailbox
+            lock.unlock();           // slow part runs WITHOUT the lock
+
+            auto start = std::chrono::steady_clock::now();
+            SearchResult result = runSearch(job.grid, job.start, job.end, job.algo);
+            double ms = std::chrono::duration<double, std::milli>(
+                            std::chrono::steady_clock::now() - start).count();
+            
+            Response answer{result, ms, job.version};
+
+            lock.lock();
+            finished_ = answer;
+        }
+    }
+
+    std::mutex mutex_;
+    std::condition_variable cv_;
+    std::optional<Request> pending_;
+    std::optional<Response> finished_;
+    bool stop_{false};
+    std::thread thread_;
+};
+
+// Thread: a second worker running a function at the same time as your main program.
+// Join: “wait here until that worker is finished.”
+// Mutex: a key. Only one thread can hold it, so only one touches the shared data at a time.
+// Condition variable: lets a thread sleep until someone wakes it, instead of checking over and over.
+
 void runAlgorithm(AppState& appState, const Algorithm& algo) {
     if (appState.start.first == -1 || appState.end.first == -1) return;
 
-    switch (algo) {
-        case Algorithm::DFS:
-            appState.result = depthFirstSearch(appState.grid, appState.start, appState.end);
-            break;
-        case Algorithm::BFS:
-            appState.result = breadthFirstSearch(appState.grid, appState.start, appState.end);
-            break;
-        case Algorithm::AStar:
-            appState.result = aStarSearch(appState.grid, appState.start, appState.end);
-            break;
-        default:
-            break;
-    }
+    appState.result = runSearch(appState.grid, appState.start, appState.end, algo);
 }
 
 std::string algorithmName(const Algorithm& algo) {
@@ -526,6 +617,16 @@ void handleKeyboardEvent(AppState& appState, AnimationState& animationState, con
 
                 resetGrid(appState.grid);
                 resetSearchState(appState.result, animationState);
+                ++appState.latestVersion;  
+                break;
+            case sf::Keyboard::Key::D:
+                if (THREAD_SLEEP_SECONDS == 2) {
+                    std::cout << "Removing delay.\n";
+                    THREAD_SLEEP_SECONDS = 0;
+                } else {
+                    std::cout << "Adding delay of 2 second to make threading more visible.\n";
+                    THREAD_SLEEP_SECONDS = 2;
+                }
                 break;
             case sf::Keyboard::Key::LShift:
                 break;
@@ -674,7 +775,7 @@ void updateAnimation(AnimationState& animationState, const AppState& appState) {
     animationState.clock.restart();
 }
 
-void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationState& animationState, const Algorithm& currentAlgo) {
+void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationState& animationState, const Algorithm& currentAlgo, bool threadedMode, SearchWorker& worker) {
     while (const std::optional event = window.pollEvent()) {
         if (event->is<sf::Event::Closed>()) {
             window.close();
@@ -685,20 +786,32 @@ void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationStat
     }
 
     if (appState.gridChanged) {
-        double executionTime = measureExecutionTime([&]() {
-            runAlgorithm(appState, currentAlgo);
-        });
+        if (threadedMode) {
+            if (appState.start.first != -1 && appState.end.first != -1) {
+               worker.submit(Request{appState.grid, appState.start, appState.end, currentAlgo, ++appState.latestVersion});
+            }
+        } else {
+            double executionTime = measureExecutionTime([&]() {
+                runAlgorithm(appState, currentAlgo);
+            });
         
-          
-        displayPerformanceStats(appState, currentAlgo, executionTime);
-
-        resetAnimationStates(animationState);
+            displayPerformanceStats(appState, currentAlgo, executionTime);
+            resetAnimationStates(animationState);
+        }
         appState.gridChanged = false;
     }
-
+ 
+    if (threadedMode) {
+        if (auto response = worker.poll()) {
+            if (response->version == appState.latestVersion) {
+                appState.result = response->result;
+                displayPerformanceStats(appState, currentAlgo, response->executionTimeMs);
+                resetAnimationStates(animationState);
+            }
+        }
+    }
     updateAnimation(animationState, appState);
 }
-
 
 
 void setCellColor(sf::RectangleShape& cell, CellType cellType, const AnimationState& animationState, int row, int col) {
@@ -737,15 +850,15 @@ void renderGUI(sf::RenderWindow& window, const AppState& appState, const Animati
     }
 }
 
-void runGuiMode(AppState& appState,
-               sf::RenderWindow& window) {
+void runGuiMode(AppState& appState, sf::RenderWindow& window, bool threadedMode) {
     
     AnimationState animationState;
+    SearchWorker worker;
 
     while (window.isOpen()) {
 
         // --- EVENT ---
-        processGUIFrame(window, appState, animationState, currentAlgo);
+        processGUIFrame(window, appState, animationState, currentAlgo, threadedMode, worker);
 
         // --- RENDER ---
         window.clear(sf::Color::White);
@@ -756,6 +869,18 @@ void runGuiMode(AppState& appState,
     }
 }
 
+bool chooseThreadedMode() {
+    int choice {};
+    std::cout << "Choose mode: 1 for Threaded, 2 for Non-Threaded: ";
+    std::cin >> choice;
+    if (choice == 1) {
+        std::cout << "Threaded mode selected.\n";
+    } else {
+        std::cout << "Non-threaded mode selected.\n";
+    }
+    return choice == 1;
+}
+
 void runApp(AppState& appState) {
     int choice {};
     std::cout << "Choose mode: 1 for Terminal, 2 for GUI: ";
@@ -763,14 +888,14 @@ void runApp(AppState& appState) {
     if (choice == 1) {
         runTerminalMode(appState);
     } else {
+        bool threadedMode = chooseThreadedMode();   // only GUI needs this
         sf::RenderWindow window(
             sf::VideoMode({COLS * CELL_SIZE, ROWS * CELL_SIZE}),
             "Pathfinding Visualizer"
         );
-        runGuiMode(appState, window);
+        runGuiMode(appState, window, threadedMode);
     }
 }
-
 
 int main() {
 
