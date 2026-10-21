@@ -780,16 +780,8 @@ void updateAnimation(AnimationState& animationState, const AppState& appState) {
     animationState.clock.restart();
 }
 
-void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationState& animationState, const Algorithm& currentAlgo, bool threadedMode, SearchWorker& worker) {
-    while (const std::optional event = window.pollEvent()) {
-        if (event->is<sf::Event::Closed>()) {
-            window.close();
-        }
 
-        handleKeyboardEvent(appState, animationState, event, window);
-        handleMouseEvent(appState, animationState, event);
-    }
-
+void processGridChanges(AppState& appState, AnimationState& animationState, const Algorithm& currentAlgo, bool threadedMode, SearchWorker& worker) {
     if (appState.gridChanged) {
         if (threadedMode) {
             if (appState.start.first != -1 && appState.end.first != -1) {
@@ -816,6 +808,19 @@ void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationStat
             }
         }
     }
+}
+
+void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationState& animationState, const Algorithm& currentAlgo, bool threadedMode, SearchWorker& worker) {
+    while (const std::optional event = window.pollEvent()) {
+        if (event->is<sf::Event::Closed>()) {
+            window.close();
+        }
+
+        handleKeyboardEvent(appState, animationState, event, window);
+        handleMouseEvent(appState, animationState, event);
+    }
+
+    processGridChanges(appState, animationState, currentAlgo, threadedMode, worker);
     updateAnimation(animationState, appState);
 }
 
