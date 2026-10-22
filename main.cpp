@@ -801,6 +801,16 @@ void updateAnimation(AnimationState& animationState, const AppState& appState) {
 }
 
 
+void processWorkerResult(AppState& appState, AnimationState& animationState, const Algorithm& currentAlgo, SearchWorker& worker) {
+    if (const std::optional<Response> response = worker.poll()) {
+        if (response->version == appState.latestVersion) {
+            appState.result = response->result;
+            displayPerformanceStats(appState, currentAlgo, response->executionTimeMs);
+            resetAnimationStates(animationState);
+        }
+    }
+}
+
 void processGridChanges(AppState& appState, AnimationState& animationState, const Algorithm& currentAlgo, bool threadedMode, SearchWorker& worker) {
     if (appState.gridChanged) {
         if (threadedMode) {
@@ -808,25 +818,17 @@ void processGridChanges(AppState& appState, AnimationState& animationState, cons
                worker.submit(Request{appState.grid, appState.start, appState.end, currentAlgo, ++appState.latestVersion});
             }
         } else {
-            sleepForGuiUpdate(THREAD_SLEEP_SECONDS);
-            double executionTime = measureExecutionTime([&]() {
-                runAlgorithm(appState, currentAlgo);
-            });
-        
-            displayPerformanceStats(appState, currentAlgo, executionTime);
-            resetAnimationStates(animationState);
-        }
-        appState.gridChanged = false;
-    }
- 
-    if (threadedMode) {
-        if (auto response = worker.poll()) {
-            if (response->version == appState.latestVersion) {
-                appState.result = response->result;
-                displayPerformanceStats(appState, currentAlgo, response->executionTimeMs);
+            if (appState.start.first != -1 && appState.end.first != -1) {
+                sleepForGuiUpdate(THREAD_SLEEP_SECONDS);
+                double executionTime = measureExecutionTime([&]() {
+                    runAlgorithm(appState, currentAlgo);
+                });
+            
+                displayPerformanceStats(appState, currentAlgo, executionTime);
                 resetAnimationStates(animationState);
             }
         }
+        appState.gridChanged = false;
     }
 }
 
@@ -841,6 +843,11 @@ void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationStat
     }
 
     processGridChanges(appState, animationState, currentAlgo, threadedMode, worker);
+    
+    if (threadedMode) {
+        processWorkerResult(appState, animationState, currentAlgo, worker);
+    }
+
     updateAnimation(animationState, appState);
 }
 
