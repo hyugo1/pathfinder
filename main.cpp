@@ -907,10 +907,20 @@ bool chooseThreadedMode() {
     return choice == 1;
 }
 
-void runApp(AppState& appState) {
+int askForModeChoice() {
     int choice {};
     std::cout << "Choose mode: 1 for Terminal, 2 for GUI: ";
     std::cin >> choice;
+    if (choice == 1) {
+        std::cout << "Terminal mode selected.\n";
+    } else {
+        std::cout << "GUI mode selected.\n";
+    }
+    return choice;
+}
+
+void runApp(AppState& appState) {
+    int choice = askForModeChoice();
     if (choice == 1) {
         runTerminalMode(appState);
     } else {
