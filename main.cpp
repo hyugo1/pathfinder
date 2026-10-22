@@ -32,7 +32,6 @@ enum class AnimationPhase { Exploring, DrawingPath, Finished };
 enum class CellType { Open, Wall, Start, End, Path, Explored };
 
 enum class Algorithm { None, DFS, BFS, AStar };
-Algorithm currentAlgo = Algorithm::None;
 
 using Grid = std::vector<std::vector<CellType>>;
 
@@ -51,6 +50,7 @@ struct AppState {
     Position start {-1, -1};
     Position end {-1, -1};
     SearchResult result;
+    Algorithm chosenAlgo {Algorithm::None};
     bool gridChanged {false};
     bool statsRequested {false};
     int latestVersion {0};
@@ -161,7 +161,6 @@ auto createVisitedGrid(int rows, int cols) {
     return std::vector<std::vector<bool>>(rows, std::vector<bool>(cols, false));
 }
 
-// SearchResult breadthFirstSearch(AppState& appstate) {
 SearchResult breadthFirstSearch(const Grid& grid, Position start, Position end) {
     SearchState searchState = initializeSearchState(grid);
     std::vector<std::vector<bool>> visited = createVisitedGrid(grid.size(), grid[0].size());
@@ -547,29 +546,23 @@ int askForAlgorithmChoice() {
     return algorithmChoice;
 }
 
-bool handleAlgorithmChoice(AppState& appState, int algorithmChoice) {
+Algorithm handleAlgorithmChoice(int algorithmChoice) {
     switch (algorithmChoice) {
         case 1:
-            std::cout << "Using BFS.\n";
-            currentAlgo = Algorithm::BFS;
-            break;
+        // std::cout << "Using DFS.\n";
+            return Algorithm::DFS;
         case 2:
-            std::cout << "Using DFS.\n";
-            currentAlgo = Algorithm::DFS;
-            break;
+        // std::cout << "Using BFS.\n";
+            return Algorithm::BFS;
         case 3:
-            std::cout << "Using A*.\n";
-            currentAlgo = Algorithm::AStar;
-            break;
+            // std::cout << "Using A*.\n";
+            return Algorithm::AStar;
         default:
             std::cerr << "Invalid choice. Exiting.\n";
-            return false;
     }
-    runAlgorithm(appState, currentAlgo);
-    return true;
+    return Algorithm::None;
 }
 
-// grid, algorithms
 void runTerminalMode(AppState& appState) {
     appState.grid = readFromFile("grids/biggrid.txt");
     if (!validateGrid(appState.grid)) {
@@ -582,9 +575,9 @@ void runTerminalMode(AppState& appState) {
 
     int algorithmChoice {askForAlgorithmChoice()};
     
-    if (!handleAlgorithmChoice(appState, algorithmChoice)) {
-        return;
-    }
+    appState.chosenAlgo = handleAlgorithmChoice(algorithmChoice);
+
+    setAlgorithmToResult(appState);
     
     Grid copy = appState.grid;
     printTerminalGridAndStats(copy, appState.result);
@@ -615,26 +608,26 @@ void handleKeyboardEvent(AppState& appState, AnimationState& animationState, con
                 break;
             case sf::Keyboard::Key::Num1:
                 std::cout << "Using " << algorithmName(Algorithm::DFS) << ".\n";
-                currentAlgo = Algorithm::DFS;
+                appState.chosenAlgo = Algorithm::DFS;
                 appState.gridChanged = true;
                 appState.statsRequested = true;
                 break;
             case sf::Keyboard::Key::Num2:
                 std::cout << "Using " << algorithmName(Algorithm::BFS) << ".\n";
-                currentAlgo = Algorithm::BFS;
+                appState.chosenAlgo = Algorithm::BFS;
                 appState.gridChanged = true;
                 appState.statsRequested = true;
                 break;
             case sf::Keyboard::Key::Num3:
                 std::cout << "Using " << algorithmName(Algorithm::AStar) << ".\n";
-                currentAlgo = Algorithm::AStar;
+                appState.chosenAlgo = Algorithm::AStar;
                 appState.gridChanged = true;
                 appState.statsRequested = true;
                 break;
             case sf::Keyboard::Key::C:
                 std::cout << "Clearing the entire grid.\n";
                 appState.gridChanged = true;
-                currentAlgo = Algorithm::None;
+                appState.chosenAlgo = Algorithm::None;
                 appState.start = {-1, -1};
                 appState.end = {-1, -1};
                 
@@ -736,9 +729,9 @@ void handleMouseEvent(AppState& appState, AnimationState& animationState, const 
     }
 }
 
-void printPerformanceStats(const SearchResult& result, const Algorithm& currentAlgo, double executionTime) {
+void printPerformanceStats(const SearchResult& result, const Algorithm& chosenAlgo, double executionTime) {
     std::cout << "\n--- Performance Stats ---\n";
-    std::cout << "Algorithm: " << algorithmName(currentAlgo) << "\n";
+    std::cout << "Algorithm: " << algorithmName(chosenAlgo) << "\n";
     std::cout << "Execution Time: " << executionTime << " ms\n";
     std::cout << "Total Nodes Explored: " << result.explorationOrder.size() << "\n";
     std::cout << "Path Length: " << result.path.size() << "\n";
@@ -751,12 +744,10 @@ double measureExecutionTime(std::function<void()> func) {
     return std::chrono::duration<double, std::milli>(end - start).count();
 }
 
+void displayPerformanceStats(const AppState& appState, double executionTime) {
 
-void displayPerformanceStats(const AppState& appState,
-                                const Algorithm& currentAlgo, double executionTime) {
-
-    if (appState.statsRequested && currentAlgo != Algorithm::None) {
-        printPerformanceStats(appState.result, currentAlgo, executionTime);
+    if (appState.statsRequested && appState.chosenAlgo != Algorithm::None) {
+        printPerformanceStats(appState.result, appState.chosenAlgo, executionTime);
     }
 }
 
@@ -801,30 +792,30 @@ void updateAnimation(AnimationState& animationState, const AppState& appState) {
 }
 
 
-void processWorkerResult(AppState& appState, AnimationState& animationState, const Algorithm& currentAlgo, SearchWorker& worker) {
+void processWorkerResult(AppState& appState, AnimationState& animationState, SearchWorker& worker) {
     if (const std::optional<Response> response = worker.poll()) {
         if (response->version == appState.latestVersion) {
             appState.result = response->result;
-            displayPerformanceStats(appState, currentAlgo, response->executionTimeMs);
+            displayPerformanceStats(appState, response->executionTimeMs);
             resetAnimationStates(animationState);
         }
     }
 }
 
-void processGridChanges(AppState& appState, AnimationState& animationState, const Algorithm& currentAlgo, bool threadedMode, SearchWorker& worker) {
+void processGridChanges(AppState& appState, AnimationState& animationState, bool threadedMode, SearchWorker& worker) {
     if (appState.gridChanged) {
         if (threadedMode) {
             if (appState.start.first != -1 && appState.end.first != -1) {
-               worker.submit(Request{appState.grid, appState.start, appState.end, currentAlgo, ++appState.latestVersion});
+               worker.submit(Request{appState.grid, appState.start, appState.end, appState.chosenAlgo, ++appState.latestVersion});
             }
         } else {
             if (appState.start.first != -1 && appState.end.first != -1) {
                 sleepForGuiUpdate(THREAD_SLEEP_SECONDS);
                 double executionTime = measureExecutionTime([&]() {
-                    runAlgorithm(appState, currentAlgo);
+                    setAlgorithmToResult(appState);
                 });
             
-                displayPerformanceStats(appState, currentAlgo, executionTime);
+                displayPerformanceStats(appState, executionTime);
                 resetAnimationStates(animationState);
             }
         }
@@ -832,7 +823,7 @@ void processGridChanges(AppState& appState, AnimationState& animationState, cons
     }
 }
 
-void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationState& animationState, const Algorithm& currentAlgo, bool threadedMode, SearchWorker& worker) {
+void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationState& animationState, bool threadedMode, SearchWorker& worker) {
     while (const std::optional event = window.pollEvent()) {
         if (event->is<sf::Event::Closed>()) {
             window.close();
@@ -842,10 +833,10 @@ void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationStat
         handleMouseEvent(appState, animationState, event);
     }
 
-    processGridChanges(appState, animationState, currentAlgo, threadedMode, worker);
+    processGridChanges(appState, animationState, threadedMode, worker);
     
     if (threadedMode) {
-        processWorkerResult(appState, animationState, currentAlgo, worker);
+        processWorkerResult(appState, animationState, worker);
     }
 
     updateAnimation(animationState, appState);
@@ -894,9 +885,8 @@ void runGuiMode(AppState& appState, sf::RenderWindow& window, bool threadedMode)
     SearchWorker worker;
 
     while (window.isOpen()) {
-
         // --- EVENT ---
-        processGUIFrame(window, appState, animationState, currentAlgo, threadedMode, worker);
+        processGUIFrame(window, appState, animationState, threadedMode, worker);
 
         // --- RENDER ---
         window.clear(sf::Color::White);
@@ -926,7 +916,7 @@ void runApp(AppState& appState) {
     if (choice == 1) {
         runTerminalMode(appState);
     } else {
-        bool threadedMode = chooseThreadedMode();   // only GUI needs this
+        bool threadedMode = chooseThreadedMode();
         sf::RenderWindow window(
             sf::VideoMode({COLS * CELL_SIZE, ROWS * CELL_SIZE}),
             "Pathfinding Visualizer"
