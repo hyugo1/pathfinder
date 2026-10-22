@@ -488,26 +488,42 @@ void resetSearchState(SearchResult& result,
     resetAnimationStates(animationState);
 }
 
-bool validateGrid(AppState& appState) {
-    if (appState.grid.empty() || appState.grid[0].empty()) {
-        std::cerr << "Invalid or empty grid.\n";
+bool checkIfGridIsEmpty(const Grid& grid) {
+    if (grid.empty() || grid[0].empty()) {
+        std::cerr << "Grid is empty.\n";
         return false;
     }
-    
-    appState.start = findCellPosition(appState.grid, CellType::Start);
-    appState.end = findCellPosition(appState.grid, CellType::End);
-    
-    if (appState.start.first == -1 || appState.end.first == -1) {
-        std::cerr << "Start or End not found.\n";
+    return true;
+}
+
+std::pair<Position, Position> findStartAndEndPositions(const Grid& grid) {
+    Position start = findCellPosition(grid, CellType::Start);
+    Position end = findCellPosition(grid, CellType::End);
+    return {start, end};
+}
+
+bool validateExactlyOneStartAndEnd(const Grid& grid) {
+    int startCount = 0;
+    int endCount = 0;
+
+    for (const auto& row : grid) {
+        startCount += std::count(row.begin(), row.end(), CellType::Start);
+        endCount += std::count(row.begin(), row.end(), CellType::End);
+    }
+
+    if (startCount != 1 || endCount != 1) {
+        std::cerr << "Grid must contain exactly one Start and one End.\n";
         return false;
     }
 
-    if (std::count_if(appState.grid.begin(), appState.grid.end(), [](const std::vector<CellType>& row) {
-        return std::count(row.begin(), row.end(), CellType::Start) > 1;
-    }) > 0 || std::count_if(appState.grid.begin(), appState.grid.end(), [](const std::vector<CellType>& row) {
-        return std::count(row.begin(), row.end(), CellType::End) > 1;
-    }) > 0) {
-        std::cerr << "More than one Start or End found.\n";
+    return true;
+}
+
+bool validateGrid(const Grid& grid) {
+    if (!checkIfGridIsEmpty(grid)) {
+        return false;
+    }
+    if (!validateExactlyOneStartAndEnd(grid)) {
         return false;
     }
 
@@ -553,12 +569,16 @@ bool handleAlgorithmChoice(AppState& appState, int algorithmChoice) {
     return true;
 }
 
+// grid, algorithms
 void runTerminalMode(AppState& appState) {
     appState.grid = readFromFile("grids/biggrid.txt");
-    
-    if (!validateGrid(appState)) {
+    if (!validateGrid(appState.grid)) {
         return;
     }
+
+    auto [start, end] = findStartAndEndPositions(appState.grid);
+    appState.start = start;
+    appState.end = end;
 
     int algorithmChoice {askForAlgorithmChoice()};
     
