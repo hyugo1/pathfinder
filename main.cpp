@@ -60,7 +60,7 @@ struct AnimationState {
     std::vector<std::vector<bool>> animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
     std::vector<bool> animatedPath = std::vector<bool>(ROWS * COLS, false);
     int animationStep {0};
-    sf::Clock clock;
+    std::chrono::steady_clock::time_point clock = std::chrono::steady_clock::now();
 };
 
 SearchState initializeSearchState(const Grid& grid) {
@@ -475,7 +475,7 @@ void resetAnimationStates(AnimationState& animationState) {
     animationState.animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
     animationState.animatedPath = std::vector<bool>(ROWS * COLS, false);
     animationState.animationStep = 0;
-    animationState.clock.restart();
+    animationState.clock = std::chrono::steady_clock::now();
 }
 
 void resetSearchState(SearchResult& result,
@@ -742,10 +742,9 @@ double measureExecutionTime(std::function<void()> func) {
     return std::chrono::duration<double, std::milli>(end - start).count();
 }
 
-void displayPerformanceStats(const AppState& appState, double executionTime) {
-
-    if (appState.statsRequested && appState.chosenAlgo != Algorithm::None) {
-        printPerformanceStats(appState.result, appState.chosenAlgo, executionTime);
+void displayPerformanceStats(bool statsRequested, const Algorithm& chosenAlgo, const SearchResult& result, double executionTime) {
+    if (statsRequested && chosenAlgo != Algorithm::None) {
+        printPerformanceStats(result, chosenAlgo, executionTime);
     }
 }
 
@@ -763,7 +762,12 @@ AnimationPhase getAnimationPhase(const AnimationState& animationState, const App
 
 void updateAnimation(AnimationState& animationState, const AppState& appState) {
     // check if its time to update first before doing anything else
-    if (animationState.clock.getElapsedTime().asMilliseconds() <= ANIMATION_INTERVAL_MS) {
+    auto end = std::chrono::steady_clock::now();
+    double elapsed = std::chrono::duration<double, std::milli>(
+        end - animationState.clock
+    ).count();
+
+    if (elapsed < ANIMATION_INTERVAL_MS) {
         return;
     }
 
@@ -786,7 +790,7 @@ void updateAnimation(AnimationState& animationState, const AppState& appState) {
             return;
     }
     ++animationState.animationStep;
-    animationState.clock.restart();
+    animationState.clock = std::chrono::steady_clock::now();
 }
 
 
@@ -794,7 +798,7 @@ void processWorkerResult(AppState& appState, AnimationState& animationState, Sea
     if (const std::optional<Response> response = worker.poll()) {
         if (response->version == appState.latestVersion) {
             appState.result = response->result;
-            displayPerformanceStats(appState, response->executionTimeMs);
+            displayPerformanceStats(appState.statsRequested, appState.chosenAlgo, appState.result, response->executionTimeMs);
             resetAnimationStates(animationState);
         }
     }
@@ -813,7 +817,7 @@ void processGridChanges(AppState& appState, AnimationState& animationState, bool
                     appState.result = computeSearchResult(appState);
                 });
             
-                displayPerformanceStats(appState, executionTime);
+                displayPerformanceStats(appState.statsRequested, appState.chosenAlgo, appState.result, executionTime);
                 resetAnimationStates(animationState);
             }
         }
