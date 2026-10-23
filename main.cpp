@@ -450,10 +450,6 @@ private:
 // Mutex: a key. Only one thread can hold it, so only one touches the shared data at a time.
 // Condition variable: lets a thread sleep until someone wakes it, instead of checking over and over.
 
-SearchResult computeSearchResult(AppState& appState) {
-    return runSearch(appState.grid, appState.start, appState.end, appState.chosenAlgo);
-}
-
 std::string algorithmName(const Algorithm& algo) {
     switch (algo) {
         case Algorithm::DFS:
@@ -575,7 +571,7 @@ void runTerminalMode(AppState& appState) {
     
     appState.chosenAlgo = handleAlgorithmChoice(algorithmChoice);
 
-    appState.result = computeSearchResult(appState);
+    appState.result = runSearch(appState.grid, appState.start, appState.end, appState.chosenAlgo);
     
     Grid copy = appState.grid;
     printTerminalGridAndStats(copy, appState.result);
@@ -814,7 +810,7 @@ void processGridChanges(AppState& appState, AnimationState& animationState, bool
             if (appState.start.first != -1 && appState.end.first != -1) {
                 sleepForGuiUpdate(THREAD_SLEEP_SECONDS);
                 double executionTime = measureExecutionTime([&]() {
-                    appState.result = computeSearchResult(appState);
+                    appState.result = runSearch(appState.grid, appState.start, appState.end, appState.chosenAlgo);
                 });
             
                 displayPerformanceStats(appState.statsRequested, appState.chosenAlgo, appState.result, executionTime);
