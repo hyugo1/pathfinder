@@ -902,7 +902,12 @@ void runGuiMode(AppState& appState, sf::RenderWindow& window, bool threadedMode)
 bool chooseThreadedMode() {
     int choice {};
     std::cout << "Choose mode: 1 for Threaded, 2 for Non-Threaded: ";
-    std::cin >> choice;
+    if (!(std::cin >> choice) || choice < 1 || choice > 2) {
+        std::cerr << "Invalid input. Please enter a number between 1 and 2.\n";
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        return chooseThreadedMode(); // recursively ask again
+    }
     if (choice == 1) {
         std::cout << "Threaded mode selected.\n";
     } else {
@@ -914,7 +919,12 @@ bool chooseThreadedMode() {
 int askForModeChoice() {
     int choice {};
     std::cout << "Choose mode: 1 for Terminal, 2 for GUI: ";
-    std::cin >> choice;
+    if (!(std::cin >> choice) || choice < 1 || choice > 2) {
+        std::cerr << "Invalid input. Please enter a number between 1 and 2.\n";
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        return askForModeChoice();
+    }
     if (choice == 1) {
         std::cout << "Terminal mode selected.\n";
     } else {
