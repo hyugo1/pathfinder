@@ -1,11 +1,8 @@
 #pragma once
 
-#include <utility>
-#include <vector>
 #include "grid.hpp"
 
 enum class Algorithm { None, DFS, BFS, AStar };
-
 
 struct SearchResult {
     std::vector<Position> path;
