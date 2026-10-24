@@ -18,10 +18,8 @@
 #include <optional>
 #include <functional>
 
-using Position = std::pair<int, int>;// {row, col}
+#include "grid.hpp"
 
-constexpr int ROWS = 80;
-constexpr int COLS = 80;
 constexpr int CELL_SIZE = 20; // pixels per grid cell
 
 std::atomic<int> THREAD_SLEEP_SECONDS {0};//safe to read and write from several threads at once, with no lock needed
@@ -29,11 +27,7 @@ constexpr int ANIMATION_INTERVAL_MS = 1;
 
 enum class AnimationPhase { Exploring, DrawingPath, Finished };
 
-enum class CellType { Open, Wall, Start, End, Path, Explored };
-
 enum class Algorithm { None, DFS, BFS, AStar };
-
-using Grid = std::vector<std::vector<CellType>>;
 
 struct SearchResult {
     std::vector<Position> path;
@@ -123,22 +117,6 @@ Grid readFromFile(std::string filename) {
     return grid;
 }
 
-Position findCellPosition(const Grid& grid, CellType target) {
-    for (int r {0}; r < static_cast<int>(grid.size()); ++r) {
-        for (int c {0}; c < static_cast<int>(grid[0].size()); ++c) {
-            if (grid[r][c] == target) {
-                return {r, c};
-            }
-        }
-    }
-    return {-1, -1};
-}
-
-bool isInBounds(const Grid& grid, int row, int col) {
-    return row >= 0 && row < static_cast<int>(grid.size()) &&
-           col >= 0 && col < static_cast<int>(grid[0].size());
-}
-
 // cameFrom means which cell did I come from to reach this cell
 std::vector<Position> reconstructPath(const std::vector<std::vector<Position>>& cameFrom, Position end) {
     Position current = end;
@@ -153,13 +131,6 @@ std::vector<Position> reconstructPath(const std::vector<std::vector<Position>>& 
     return path;
 }
 
-bool isTraversable(const Grid& grid, int row, int col) {
-    return isInBounds(grid, row, col) && grid[row][col] != CellType::Wall;
-}
-
-auto createVisitedGrid(int rows, int cols) {
-    return std::vector<std::vector<bool>>(rows, std::vector<bool>(cols, false));
-}
 
 SearchResult breadthFirstSearch(const Grid& grid, Position start, Position end) {
     SearchState searchState = initializeSearchState(grid);
@@ -481,48 +452,6 @@ void resetSearchState(SearchResult& result,
     resetAnimationStates(animationState);
 }
 
-bool checkIfGridIsEmpty(const Grid& grid) {
-    if (grid.empty() || grid[0].empty()) {
-        std::cerr << "Grid is empty.\n";
-        return false;
-    }
-    return true;
-}
-
-std::pair<Position, Position> findStartAndEndPositions(const Grid& grid) {
-    Position start = findCellPosition(grid, CellType::Start);
-    Position end = findCellPosition(grid, CellType::End);
-    return {start, end};
-}
-
-bool validateExactlyOneStartAndEnd(const Grid& grid) {
-    int startCount = 0;
-    int endCount = 0;
-
-    for (const auto& row : grid) {
-        startCount += std::count(row.begin(), row.end(), CellType::Start);
-        endCount += std::count(row.begin(), row.end(), CellType::End);
-    }
-
-    if (startCount != 1 || endCount != 1) {
-        std::cerr << "Grid must contain exactly one Start and one End.\n";
-        return false;
-    }
-
-    return true;
-}
-
-bool validateGrid(const Grid& grid) {
-    if (!checkIfGridIsEmpty(grid)) {
-        return false;
-    }
-    if (!validateExactlyOneStartAndEnd(grid)) {
-        return false;
-    }
-
-    return true;
-}
-
 int askForAlgorithmChoice() {
     int algorithmChoice {};
     std::cout << "Which algorithm do you want to use? "; 
@@ -575,14 +504,6 @@ void runTerminalMode(AppState& appState) {
     
     Grid copy = appState.grid;
     printTerminalGridAndStats(copy, appState.result);
-}
-
-void resetGrid(Grid& grid) {
-    for (int r = 0; r < ROWS; ++r) {
-        for (int c = 0; c < COLS; ++c) {
-            grid[r][c] = CellType::Open;
-        }
-    }
 }
 
 void handleKeyboardEvent(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event, sf::RenderWindow& window) {
