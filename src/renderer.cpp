@@ -41,6 +41,12 @@ void handleKeyboardEvent(AppState& appState, AnimationState& animationState, con
                 appState.gridChanged = true;
                 appState.statsRequested = true;
                 break;
+            case sf::Keyboard::Key::Num4:
+                std::cout << "Using " << algorithmName(Algorithm::Djikstra) << ".\n";
+                appState.chosenAlgo = Algorithm::Djikstra;
+                appState.gridChanged = true;
+                appState.statsRequested = true;
+                break;
             case sf::Keyboard::Key::C:
                 std::cout << "Clearing the entire grid.\n";
                 appState.gridChanged = true;
