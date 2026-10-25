@@ -83,12 +83,12 @@ void printTerminalGridAndStats(Grid& copy, const SearchResult& result) {
 int askForAlgorithmChoice() {
     int algorithmChoice {};
     std::cout << "Which algorithm do you want to use? "; 
-    for (int i = 1; i <= 3; ++i) {
-        std::cout << i << " for " << (i == 1 ? "DFS" : (i == 2 ? "BFS" : "A*")) << ", ";
+    for (int i = 1; i <= 4; ++i) {
+        std::cout << i << " for " << (i == 1 ? "DFS" : (i == 2 ? "BFS" : (i == 3 ? "A*" : "Dijkstra")));
     }
     std::cout << "\nEnter your algorithmChoice: ";
-    while (!(std::cin >> algorithmChoice) || algorithmChoice < 1 || algorithmChoice > 3) {
-        std::cerr << "Invalid input. Please enter a number between 1 and 3.\n";
+    while (!(std::cin >> algorithmChoice) || algorithmChoice < 1 || algorithmChoice > 4) {
+        std::cerr << "Invalid input. Please enter a number between 1 and 4.\n";
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     }
