@@ -3,7 +3,7 @@
 #include "grid.hpp"
 #include <vector>
 
-enum class Algorithm { None, DFS, BFS, AStar };
+enum class Algorithm { None, DFS, BFS, AStar, Djikstra };
 
 struct SearchResult {
     std::vector<Position> path;

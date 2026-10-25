@@ -160,11 +160,59 @@ SearchResult aStarSearch(const Grid& grid, Position start, Position end) {
     return {{}, searchState.explorationOrder}; // no path found
 }
 
+// BFS minimizes the number of steps, whereas Dijkstra minimizes the total movement cost.
+SearchResult djikstra(const Grid& grid, Position start, Position end) {
+    // * g(n) → how far I’ve actually moved from start
+    int rowCount = grid.size();
+    int colCount = grid[0].size();
+    SearchState searchState = initializeSearchState(grid);
+    std::vector<std::vector<int>> gCost(rowCount, std::vector<int>(colCount, std::numeric_limits<int>::max())); // cost from start to this node
+    std::priority_queue<std::pair<int, Position>, std::vector<std::pair<int, Position>>, std::greater<>> pq;//std::greater makes it a minheap.default is maxheap.
+
+    gCost[start.first][start.second] = 0;
+    pq.push({0, start});
+
+    while (!pq.empty()) {
+        auto [g, current] = pq.top();
+        pq.pop();
+        
+        if (g > gCost[current.first][current.second]) {
+            continue; // skip outdated entry
+        }
+        searchState.explorationOrder.push_back(current);
+        
+        if (current == end) {
+            return {reconstructPath(searchState.cameFrom, end), searchState.explorationOrder};
+        }
+        
+        int costtomove = 1;
+        for (int i = 0; i < 4; ++i) {
+            int nr = current.first + DIRECTIONS[i].first;
+            int nc = current.second + DIRECTIONS[i].second;
+
+            if (!isTraversable(grid, nr, nc)) {
+                continue;
+            }
+            
+            int tentativeG = gCost[current.first][current.second] + costtomove;
+            if (tentativeG < gCost[nr][nc]) {
+                gCost[nr][nc] = tentativeG;
+                searchState.cameFrom[nr][nc] = current;
+                
+                pq.push({tentativeG, {nr, nc}});
+            }
+        }
+    }
+
+    return {{}, searchState.explorationOrder}; // no path found
+}
+
 SearchResult runSearch(const Grid& grid, Position start, Position end, Algorithm algo) {
     switch (algo) {
         case Algorithm::DFS:   return depthFirstSearch(grid, start, end);
         case Algorithm::BFS:   return breadthFirstSearch(grid, start, end);
         case Algorithm::AStar: return aStarSearch(grid, start, end);
+        case Algorithm::Djikstra: return djikstra(grid, start, end);
         default:               return {};
     }
 }
@@ -177,6 +225,8 @@ std::string algorithmName(const Algorithm& algo) {
             return "BFS";
         case Algorithm::AStar:
             return "A*";
+        case Algorithm::Djikstra:
+            return "Dijkstra";
         default:
             return "None";
     }
@@ -197,6 +247,9 @@ Algorithm handleAlgorithmChoice(int algorithmChoice) {
         case 3:
             // std::cout << "Using A*.\n";
             return Algorithm::AStar;
+        case 4:
+            // std::cout << "Using Dijkstra.\n";
+            return Algorithm::Djikstra;
         default:
             std::cerr << "Invalid choice. Exiting.\n";
     }
