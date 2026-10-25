@@ -21,30 +21,7 @@
 #include "grid.hpp"
 #include "algorithms.hpp"
 #include "SearchWorker.hpp"
-
-constexpr int CELL_SIZE = 20; // pixels per grid cell
-
-constexpr int ANIMATION_INTERVAL_MS = 1;
-
-enum class AnimationPhase { Exploring, DrawingPath, Finished };
-
-struct AppState {
-    Grid grid;
-    Position start {-1, -1};
-    Position end {-1, -1};
-    SearchResult result;
-    Algorithm chosenAlgo {Algorithm::None};
-    bool gridChanged {false};
-    bool statsRequested {false};
-    int latestVersion {0};
-};
-
-struct AnimationState {
-    std::vector<std::vector<bool>> animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
-    std::vector<bool> animatedPath = std::vector<bool>(ROWS * COLS, false);
-    int animationStep {0};
-    std::chrono::steady_clock::time_point clock = std::chrono::steady_clock::now();
-};
+#include "appstate.hpp"
 
 std::string parseLine(const std::string& line) {
     std::string result;
@@ -158,25 +135,6 @@ void sleepForGuiUpdate(int seconds) {
     std::this_thread::sleep_for(std::chrono::seconds(seconds));
 }
 
-// Thread: a second worker running a function at the same time as your main program.
-// Join: “wait here until that worker is finished.”
-// Mutex: a key. Only one thread can hold it, so only one touches the shared data at a time.
-// Condition variable: lets a thread sleep until someone wakes it, instead of checking over and over.
-
-void resetAnimationStates(AnimationState& animationState) {
-    animationState.animatedGrid = std::vector<std::vector<bool>>(ROWS, std::vector<bool>(COLS, false));
-    animationState.animatedPath = std::vector<bool>(ROWS * COLS, false);
-    animationState.animationStep = 0;
-    animationState.clock = std::chrono::steady_clock::now();
-}
-
-void resetSearchState(SearchResult& result,
-                 AnimationState& animationState) {
-
-    clearSearchResult(result);
-    resetAnimationStates(animationState);
-}
-
 int askForAlgorithmChoice() {
     int algorithmChoice {};
     std::cout << "Which algorithm do you want to use? "; 
@@ -278,57 +236,6 @@ void handleKeyboardEvent(AppState& appState, AnimationState& animationState, con
     }
 }
 
-void updateCellType(AppState& appState, AnimationState& animationState, int row, int col, CellType requestedCellType) {
-    switch(requestedCellType) {
-        case CellType::Wall:
-            if (appState.grid[row][col] == CellType::Start || appState.grid[row][col] == CellType::End) {
-                std::cout << "Cannot set Wall on Start or End.\n";
-                return;
-            }
-
-            if (appState.grid[row][col] == CellType::Wall) {
-                appState.grid[row][col] = CellType::Open;
-            } else {
-                appState.grid[row][col] = CellType::Wall;
-            }
-
-            appState.statsRequested = false;
-            break;
-        case CellType::Start:
-            if (appState.grid[row][col] == CellType::End) {
-                std::cout << "Cannot set Start on End.\n";
-                return;
-            }
-             for (auto& r : appState.grid)
-                for (auto& c : r)
-                    if (c == CellType::Start) c = CellType::Open;
-            
-            appState.grid[row][col] = CellType::Start;
-            appState.statsRequested = true;
-            appState.start = {row, col};
-            break;
-        case CellType::End:
-            if (appState.grid[row][col] == CellType::Start) {
-                std::cout << "Cannot set End on Start.\n";
-                return;
-            }
-            for (auto& r : appState.grid)
-                for (auto& c : r)
-                    if (c == CellType::End) c = CellType::Open;
-
-            appState.grid[row][col] = CellType::End;
-            appState.statsRequested = true;
-            appState.end = {row, col};
-            break;
-        default:
-            std::cout << "Unknown cell type.\n";
-            break;
-    }
-
-    appState.gridChanged = true;
-    resetSearchState(appState.result, animationState);
-}
-
 void handleMouseEvent(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event) {
     if (const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>()) {
         int col = mousePressed->position.x / CELL_SIZE;
@@ -359,65 +266,6 @@ void printPerformanceStats(const SearchResult& result, const Algorithm& chosenAl
     std::cout << "Total Nodes Explored: " << result.explorationOrder.size() << "\n";
     std::cout << "Path Length: " << result.path.size() << "\n";
 }
-
-double measureExecutionTime(std::function<void()> func) {
-    auto start = std::chrono::steady_clock::now();
-    func();
-    auto end = std::chrono::steady_clock::now();
-    return std::chrono::duration<double, std::milli>(end - start).count();
-}
-
-void displayPerformanceStats(bool statsRequested, const Algorithm& chosenAlgo, const SearchResult& result, double executionTime) {
-    if (statsRequested && chosenAlgo != Algorithm::None) {
-        printPerformanceStats(result, chosenAlgo, executionTime);
-    }
-}
-
-AnimationPhase getAnimationPhase(const AnimationState& animationState, const AppState& appState) {
-    const int explorationSize = static_cast<int>(appState.result.explorationOrder.size());
-    const int totalSteps = explorationSize + static_cast<int>(appState.result.path.size());
-    if (animationState.animationStep < explorationSize) {
-        return AnimationPhase::Exploring;
-    }
-    if (animationState.animationStep < totalSteps) {
-        return AnimationPhase::DrawingPath;
-    }
-    return AnimationPhase::Finished;
-}
-
-void updateAnimation(AnimationState& animationState, const AppState& appState) {
-    // check if its time to update first before doing anything else
-    auto end = std::chrono::steady_clock::now();
-    double elapsed = std::chrono::duration<double, std::milli>(
-        end - animationState.clock
-    ).count();
-
-    if (elapsed < ANIMATION_INTERVAL_MS) {
-        return;
-    }
-
-    switch (getAnimationPhase(animationState, appState)) {
-        case AnimationPhase::Exploring: {
-            const auto position = appState.result.explorationOrder[animationState.animationStep];
-            animationState.animatedGrid[position.first][position.second] = true;
-            break;
-        }   
-
-        case AnimationPhase::DrawingPath: {
-            const int explorationSize = static_cast<int>(appState.result.explorationOrder.size());
-            const int pathIndex = animationState.animationStep - explorationSize;
-            const auto position = appState.result.path[pathIndex];
-            animationState.animatedPath[position.first * COLS + position.second] = true;
-            break;
-        }
-
-        case AnimationPhase::Finished:
-            return;
-    }
-    ++animationState.animationStep;
-    animationState.clock = std::chrono::steady_clock::now();
-}
-
 
 void processWorkerResult(AppState& appState, AnimationState& animationState, SearchWorker& worker) {
     if (const std::optional<Response> response = worker.poll()) {
