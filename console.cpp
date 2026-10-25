@@ -3,6 +3,8 @@
 #include "console.hpp"
 #include "grid.hpp"
 #include "algorithms.hpp"
+#include <limits>
+#include <ios>
 
 void printPerformanceStats(const SearchResult& result, const Algorithm& chosenAlgo, double executionTime) {
     std::cout << "\n--- Performance Stats ---\n";
@@ -79,11 +81,10 @@ int askForAlgorithmChoice() {
         std::cout << i << " for " << (i == 1 ? "DFS" : (i == 2 ? "BFS" : "A*")) << ", ";
     }
     std::cout << "\nEnter your algorithmChoice: ";
-    if (!(std::cin >> algorithmChoice) || algorithmChoice < 1 || algorithmChoice > 3) {
+    while (!(std::cin >> algorithmChoice) || algorithmChoice < 1 || algorithmChoice > 3) {
         std::cerr << "Invalid input. Please enter a number between 1 and 3.\n";
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        return askForAlgorithmChoice(); // recursively ask again
     }
 
     return algorithmChoice;
@@ -92,11 +93,10 @@ int askForAlgorithmChoice() {
 bool chooseThreadedMode() {
     int choice {};
     std::cout << "Choose mode: 1 for Threaded, 2 for Non-Threaded: ";
-    if (!(std::cin >> choice) || choice < 1 || choice > 2) {
+    while (!(std::cin >> choice) || choice < 1 || choice > 2) {
         std::cerr << "Invalid input. Please enter a number between 1 and 2.\n";
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        return chooseThreadedMode(); // recursively ask again
     }
     if (choice == 1) {
         std::cout << "Threaded mode selected.\n";
@@ -109,11 +109,10 @@ bool chooseThreadedMode() {
 int askForModeChoice() {
     int choice {};
     std::cout << "Choose mode: 1 for Terminal, 2 for GUI: ";
-    if (!(std::cin >> choice) || choice < 1 || choice > 2) {
+    while (!(std::cin >> choice) || choice < 1 || choice > 2) {
         std::cerr << "Invalid input. Please enter a number between 1 and 2.\n";
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        return askForModeChoice();
     }
     if (choice == 1) {
         std::cout << "Terminal mode selected.\n";

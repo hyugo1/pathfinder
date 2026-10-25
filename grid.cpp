@@ -1,5 +1,7 @@
 #include "grid.hpp"
 #include <iostream>
+#include <algorithm>
+#include <vector>
 
 Position findCellPosition(const Grid& grid, CellType target) {
     for (int r {0}; r < static_cast<int>(grid.size()); ++r) {

@@ -18,7 +18,7 @@ std::string parseLine(const std::string& line) {
     return result;
 }
 
-Grid readFromFile(std::string filename) {
+Grid readFromFile(const std::string filename) {
     std::ifstream file(filename);
     std::string line;
     Grid grid;

@@ -18,3 +18,10 @@ target_link_libraries(main PRIVATE SFML::System SFML::Window SFML::Graphics)
 # cmake -S . -B build
 # cmake --build build --clean-first
 # ./build/main
+
+# g++ -std=c++17 -Wall -Wextra \
+#       -I/opt/homebrew/include -L/opt/homebrew/lib \
+#       main.cpp terminal.cpp console.cpp appstate.cpp renderer.cpp \
+#       SearchWorker.cpp algorithms.cpp grid.cpp \
+#       -o pathfinder \
+#       -lsfml-graphics -lsfml-window -lsfml-system -pthread

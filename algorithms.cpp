@@ -4,6 +4,12 @@
 #include <queue>
 #include <stack>
 #include <iostream>
+#include <array>
+#include <string>
+#include <algorithm>
+#include <limits>
+#include <functional>
+#include <ios>
 
 
 SearchState initializeSearchState(const Grid& grid) {

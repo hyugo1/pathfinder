@@ -1,6 +1,7 @@
 #pragma once
 
 #include "grid.hpp"
+#include <vector>
 
 enum class Algorithm { None, DFS, BFS, AStar };
 

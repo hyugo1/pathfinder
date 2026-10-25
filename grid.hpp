@@ -8,7 +8,6 @@ enum class CellType { Open, Wall, Start, End, Path, Explored };
 constexpr int ROWS = 80;
 constexpr int COLS = 80;
 
-
 using Position = std::pair<int, int>;
 using Grid = std::vector<std::vector<CellType>>;
 
