@@ -2,6 +2,7 @@
 #include "SearchWorker.hpp"
 #include "algorithms.hpp"
 #include "grid.hpp"
+#include "console.hpp"
 #include "renderer.hpp"
 #include <SFML/Graphics.hpp>
 #include <iostream>

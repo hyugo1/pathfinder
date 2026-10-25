@@ -73,12 +73,6 @@ double measureExecutionTime(std::function<void()> func) {
     return std::chrono::duration<double, std::milli>(end - start).count();
 }
 
-void displayPerformanceStats(bool statsRequested, const Algorithm& chosenAlgo, const SearchResult& result, double executionTime) {
-    if (statsRequested && chosenAlgo != Algorithm::None) {
-        printPerformanceStats(result, chosenAlgo, executionTime);
-    }
-}
-
 AnimationPhase getAnimationPhase(const AnimationState& animationState, const AppState& appState) {
     const int explorationSize = static_cast<int>(appState.result.explorationOrder.size());
     const int totalSteps = explorationSize + static_cast<int>(appState.result.path.size());

@@ -14,6 +14,12 @@ void printPerformanceStats(const SearchResult& result, const Algorithm& chosenAl
     std::cout << "Path Length: " << result.path.size() << "\n";
 }
 
+void displayPerformanceStats(bool statsRequested, const Algorithm& chosenAlgo, const SearchResult& result, double executionTime) {
+    if (statsRequested && chosenAlgo != Algorithm::None) {
+        printPerformanceStats(result, chosenAlgo, executionTime);
+    }
+}
+
 std::ostream& operator<<(std::ostream& os, CellType cell) {
     switch (cell) {
         case CellType::Open:  os << '.'; break;

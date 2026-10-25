@@ -37,6 +37,5 @@ void resetSearchState(SearchResult& result, AnimationState& animationState);
 void updateCellType(AppState& appState, AnimationState& animationState, int row, int col, CellType requestedCellType);
 double measureExecutionTime(std::function<void()> func);
 void printPerformanceStats(const SearchResult& result, const Algorithm& chosenAlgo, double executionTime);
-void displayPerformanceStats(bool statsRequested, const Algorithm& chosenAlgo, const SearchResult& result, double executionTime);
 AnimationPhase getAnimationPhase(const AnimationState& animationState, const AppState& appState);
 void updateAnimation(AnimationState& animationState, const AppState& appState);
