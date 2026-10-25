@@ -66,17 +66,21 @@ SearchResult breadthFirstSearch(const Grid& grid, Position start, Position end) 
     return {{}, searchState.explorationOrder}; // no path found
 }
 
+//Your DFS marks cells visited when pushing them, not when popping. It still finds a valid path and is correct, but the exploration order and the path won’t match a textbook DFS.
 SearchResult depthFirstSearch(const Grid& grid, Position start, Position end) {
     SearchState searchState = initializeSearchState(grid);
     std::vector<std::vector<bool>> visited = createVisitedGrid(grid.size(), grid[0].size());
 
     std::stack<Position> st;
     st.push(start);
-    visited[start.first][start.second] = true;
 
     while (!st.empty()) {
         Position current = st.top();
         st.pop();
+        if (visited[current.first][current.second]) {
+            continue;
+        }
+        visited[current.first][current.second] = true;
         searchState.explorationOrder.push_back(current);
         if (current == end) {
             return {reconstructPath(searchState.cameFrom, end), searchState.explorationOrder};
@@ -89,7 +93,6 @@ SearchResult depthFirstSearch(const Grid& grid, Position start, Position end) {
             int nc = current.second + direction.second;
 
             if (isTraversable(grid, nr, nc) && !visited[nr][nc]) {
-                visited[nr][nc] = true;
                 searchState.cameFrom[nr][nc] = current;
                 st.push({nr, nc});
             }
