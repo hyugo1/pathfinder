@@ -5,6 +5,7 @@
 #include "appstate.hpp"
 #include "SearchWorker.hpp"
 #include <SFML/Graphics.hpp>
+#include <optional>
 
 void handleKeyboardEvent(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event, sf::RenderWindow& window);
 void handleMouseEvent(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event);
