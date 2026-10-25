@@ -13,7 +13,7 @@ add_executable(main
     src/main.cpp
     src/grid.cpp
     src/algorithms.cpp
-    src/SearchWorker.cpp
+    src/searchworker.cpp
     src/appstate.cpp
     src/renderer.cpp
     src/console.cpp
