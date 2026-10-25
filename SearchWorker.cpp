@@ -69,3 +69,8 @@ void SearchWorker::threadLoop()
         finished_ = answer;
     }
 }
+
+// Thread: a second worker running a function at the same time as your main program.
+// Join: “wait here until that worker is finished.”
+// Mutex: a key. Only one thread can hold it, so only one touches the shared data at a time.
+// Condition variable: lets a thread sleep until someone wakes it, instead of checking over and over.
