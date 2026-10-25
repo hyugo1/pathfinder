@@ -8,7 +8,7 @@
 #include <iostream>
 #include <utility>
 #include <atomic>
-#include "SearchWorker.hpp"
+#include "searchworker.hpp"
 
 SearchWorker::SearchWorker() : thread_(&SearchWorker::threadLoop, this) {} // starts the worker thread
 

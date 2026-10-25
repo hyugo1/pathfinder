@@ -3,7 +3,7 @@
 #include "grid.hpp"
 #include "algorithms.hpp"
 #include "appstate.hpp"
-#include "SearchWorker.hpp"
+#include "searchworker.hpp"
 #include <SFML/Graphics.hpp>
 #include <optional>
 

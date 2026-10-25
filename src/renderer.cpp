@@ -1,5 +1,5 @@
 #include "appstate.hpp"
-#include "SearchWorker.hpp"
+#include "searchworker.hpp"
 #include "algorithms.hpp"
 #include "grid.hpp"
 #include "console.hpp"
