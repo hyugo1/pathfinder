@@ -1,9 +1,12 @@
 /.vscode
 
 main
+pathfinder
 build/
 
 todolist.txt
 
 a.out
 /threadexample
+
+/diagrams
