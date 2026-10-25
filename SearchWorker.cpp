@@ -55,7 +55,6 @@ void SearchWorker::threadLoop()
         pending_.reset();        // clear mailbox
         lock.unlock();           // slow part runs WITHOUT the lock
         
-        // sleepForGuiUpdate(THREAD_SLEEP_SECONDS); // simulate a delay for GUI visibility
         std::this_thread::sleep_for(std::chrono::seconds(THREAD_SLEEP_SECONDS));
         
         auto start = std::chrono::steady_clock::now();
