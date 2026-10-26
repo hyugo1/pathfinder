@@ -1,7 +1,8 @@
 #include "terminal.hpp"
 #include "appstate.hpp"
-#include "grid.hpp"
 #include "console.hpp"
+#include "algorithms.hpp"
+#include "grid.hpp"
 #include <string>
 #include <fstream>
 

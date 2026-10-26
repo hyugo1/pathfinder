@@ -3,9 +3,7 @@
 #include "grid.hpp"
 #include <queue>
 #include <stack>
-#include <iostream>
 #include <array>
-#include <string>
 #include <algorithm>
 #include <limits>
 #include <functional>
@@ -213,21 +211,6 @@ SearchResult runSearch(const Grid& grid, Position start, Position end, Algorithm
         case Algorithm::AStar: return aStarSearch(grid, start, end);
         case Algorithm::Djikstra: return djikstra(grid, start, end);
         default:               return {};
-    }
-}
-
-std::string algorithmName(const Algorithm& algo) {
-    switch (algo) {
-        case Algorithm::DFS:
-            return "DFS";
-        case Algorithm::BFS:
-            return "BFS";
-        case Algorithm::AStar:
-            return "A*";
-        case Algorithm::Djikstra:
-            return "Dijkstra";
-        default:
-            return "None";
     }
 }
 

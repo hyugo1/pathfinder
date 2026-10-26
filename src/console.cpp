@@ -6,6 +6,25 @@
 #include <limits>
 #include <ios>
 
+void printAlgorithmName(const Algorithm& algo) {
+    std::cout << "Using " << algorithmName(algo) << ".\n";
+}
+
+std::string algorithmName(const Algorithm& algo) {
+    switch (algo) {
+        case Algorithm::DFS:
+            return "DFS";
+        case Algorithm::BFS:
+            return "BFS";
+        case Algorithm::AStar:
+            return "A*";
+        case Algorithm::Djikstra:
+            return "Dijkstra";
+        default:
+            return "None";
+    }
+}
+
 void printPerformanceStats(const SearchResult& result, const Algorithm& chosenAlgo, double executionTime) {
     std::cout << "\n--- Performance Stats ---\n";
     std::cout << "Algorithm: " << algorithmName(chosenAlgo) << "\n";

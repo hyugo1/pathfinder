@@ -24,25 +24,25 @@ void handleKeyboardEvent(AppState& appState, AnimationState& animationState, con
                 window.close();
                 break;
             case sf::Keyboard::Key::Num1:
-                std::cout << "Using " << algorithmName(Algorithm::DFS) << ".\n";
+                printAlgorithmName(Algorithm::DFS);
                 appState.chosenAlgo = Algorithm::DFS;
                 appState.gridChanged = true;
                 appState.statsRequested = true;
                 break;
             case sf::Keyboard::Key::Num2:
-                std::cout << "Using " << algorithmName(Algorithm::BFS) << ".\n";
+                printAlgorithmName(Algorithm::BFS);
                 appState.chosenAlgo = Algorithm::BFS;
                 appState.gridChanged = true;
                 appState.statsRequested = true;
                 break;
             case sf::Keyboard::Key::Num3:
-                std::cout << "Using " << algorithmName(Algorithm::AStar) << ".\n";
+                printAlgorithmName(Algorithm::AStar);
                 appState.chosenAlgo = Algorithm::AStar;
                 appState.gridChanged = true;
                 appState.statsRequested = true;
                 break;
             case sf::Keyboard::Key::Num4:
-                std::cout << "Using " << algorithmName(Algorithm::Djikstra) << ".\n";
+                printAlgorithmName(Algorithm::Djikstra);
                 appState.chosenAlgo = Algorithm::Djikstra;
                 appState.gridChanged = true;
                 appState.statsRequested = true;
