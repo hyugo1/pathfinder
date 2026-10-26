@@ -61,12 +61,12 @@ void runTerminalMode(AppState& appState) {
     appState.start = start;
     appState.end = end;
 
-    int algorithmChoice {askForAlgorithmChoice()};
+    Algorithm algorithmChoice {askForAlgorithmChoice()};
     
-    appState.chosenAlgo = handleAlgorithmChoice(algorithmChoice);
+    appState.chosenAlgo = algorithmChoice;
 
     appState.result = runSearch(appState.grid, appState.start, appState.end, appState.chosenAlgo);
     
     Grid copy = appState.grid;
-    printTerminalGridAndStats(copy, appState.result);
+    printTerminalGridAndStats(copy, appState.result, appState.chosenAlgo);
 }

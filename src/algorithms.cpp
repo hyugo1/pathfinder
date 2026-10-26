@@ -11,7 +11,6 @@
 #include <functional>
 #include <ios>
 
-
 SearchState initializeSearchState(const Grid& grid) {
     return {
         std::vector<std::vector<Position>>(grid.size(), std::vector<Position>(grid[0].size(), {-1, -1})),
@@ -231,27 +230,8 @@ std::string algorithmName(const Algorithm& algo) {
             return "None";
     }
 }
+
 void clearSearchResult(SearchResult& result) {
     result.path.clear();
     result.explorationOrder.clear();
-}
-
-Algorithm handleAlgorithmChoice(int algorithmChoice) {
-    switch (algorithmChoice) {
-        case 1:
-        // std::cout << "Using DFS.\n";
-            return Algorithm::DFS;
-        case 2:
-        // std::cout << "Using BFS.\n";
-            return Algorithm::BFS;
-        case 3:
-            // std::cout << "Using A*.\n";
-            return Algorithm::AStar;
-        case 4:
-            // std::cout << "Using Dijkstra.\n";
-            return Algorithm::Djikstra;
-        default:
-            std::cerr << "Invalid choice. Exiting.\n";
-    }
-    return Algorithm::None;
 }

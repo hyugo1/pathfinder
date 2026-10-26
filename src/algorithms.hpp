@@ -33,4 +33,3 @@ SearchResult aStarSearch(const Grid& grid, Position start, Position end);
 SearchResult runSearch(const Grid& grid, Position start, Position end, Algorithm algo);
 std::string algorithmName(const Algorithm& algo);
 void clearSearchResult(SearchResult& result);
-Algorithm handleAlgorithmChoice(int algorithmChoice);
