@@ -2,8 +2,18 @@
 
 #include "grid.hpp"
 #include <vector>
+#include <array>
 
 enum class Algorithm { None, DFS, BFS, AStar, Dijkstra };
+
+constexpr int OPEN_COST = 1;
+constexpr int WALL_COST = -1; // impassable
+constexpr int PATH_COST = 1;
+constexpr int EXPLORED_COST = 1;
+constexpr int START_COST = 1;
+constexpr int END_COST = 1;
+constexpr int MUD_COST = 5;
+constexpr int WATER_COST = 10;
 
 struct SearchResult {
     std::vector<Position> path;

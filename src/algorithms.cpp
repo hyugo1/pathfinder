@@ -9,6 +9,8 @@
 #include <iostream>
 #include <functional>
 #include <ios>
+#include <cstdlib>
+#include <utility>
 
 SearchState initializeSearchState(const Grid& grid) {
     return {
@@ -33,21 +35,21 @@ std::vector<Position> reconstructPath(const std::vector<std::vector<Position>>& 
 int getMovementCost(CellType cellType) {
     switch (cellType) {
         case CellType::Open:
+            return OPEN_COST;
         case CellType::Start:
+            return START_COST;
         case CellType::End:
-            return 1;
+            return END_COST;
         case CellType::Path:
-            return 1;
+            return PATH_COST;
         case CellType::Explored:
-            return 1;
+            return EXPLORED_COST;
         case CellType::Wall:
-            return std::numeric_limits<int>::max(); // Impassable
+            return WALL_COST;
         case CellType::Mud:
-            // return 3;
-            return 300;
+            return MUD_COST;
         case CellType::Water:
-            // return 5;
-            return 500;
+            return WATER_COST;
         default:
             return 1;
     }
@@ -86,7 +88,6 @@ SearchResult breadthFirstSearch(const Grid& grid, Position start, Position end) 
     return {{}, searchState.explorationOrder}; // no path found
 }
 
-//Your DFS marks cells visited when pushing them, not when popping. It still finds a valid path and is correct, but the exploration order and the path won’t match a textbook DFS.
 SearchResult depthFirstSearch(const Grid& grid, Position start, Position end) {
     SearchState searchState = initializeSearchState(grid);
     std::vector<std::vector<bool>> visited = createVisitedGrid(grid.size(), grid[0].size());
@@ -156,7 +157,6 @@ SearchResult aStarSearch(const Grid& grid, Position start, Position end) {
             return {reconstructPath(searchState.cameFrom, end), searchState.explorationOrder};
         }
         
-        int costtomove = getMovementCost(grid[current.first][current.second]);
         for (int i = 0; i < 4; ++i) {
             int nr = current.first + DIRECTIONS[i].first;
             int nc = current.second + DIRECTIONS[i].second;
@@ -164,6 +164,7 @@ SearchResult aStarSearch(const Grid& grid, Position start, Position end) {
             if (!isTraversable(grid, nr, nc)) {
                 continue;
             }
+            int costtomove = getMovementCost(grid[nr][nc]);
             
             int tentativeG = gCost[current.first][current.second] + costtomove; // distance from Start node to current node. cheapest way to get from start to current node. 
             if (tentativeG < gCost[nr][nc]) { // if the new path to neighbor is cheaper than any previous one
@@ -205,7 +206,6 @@ SearchResult Dijkstra(const Grid& grid, Position start, Position end) {
             return {reconstructPath(searchState.cameFrom, end), searchState.explorationOrder};
         }
         
-        int costtomove = getMovementCost(grid[current.first][current.second]); // get the movement cost for the current cell
         for (int i = 0; i < 4; ++i) {
             int nr = current.first + DIRECTIONS[i].first;
             int nc = current.second + DIRECTIONS[i].second;
@@ -213,6 +213,7 @@ SearchResult Dijkstra(const Grid& grid, Position start, Position end) {
             if (!isTraversable(grid, nr, nc)) {
                 continue;
             }
+            int costtomove = getMovementCost(grid[nr][nc]);
             
             int tentativeG = gCost[current.first][current.second] + costtomove;
             if (tentativeG < gCost[nr][nc]) {
