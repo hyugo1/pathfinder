@@ -12,7 +12,8 @@ void handleKeyboardEvent(AppState& appState, AnimationState& animationState, con
     if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
         if ((keyPressed->code == sf::Keyboard::Key::Num1 ||
                 keyPressed->code == sf::Keyboard::Key::Num2 ||
-                keyPressed->code == sf::Keyboard::Key::Num3) &&
+                keyPressed->code == sf::Keyboard::Key::Num3 ||
+                keyPressed->code == sf::Keyboard::Key::Num4) &&
             (appState.start.first == -1 || appState.end.first == -1)) {
 
             std::cout << "Set start and end first!\n";
@@ -42,8 +43,8 @@ void handleKeyboardEvent(AppState& appState, AnimationState& animationState, con
                 appState.statsRequested = true;
                 break;
             case sf::Keyboard::Key::Num4:
-                printAlgorithmName(Algorithm::Djikstra);
-                appState.chosenAlgo = Algorithm::Djikstra;
+                printAlgorithmName(Algorithm::Dijkstra);
+                appState.chosenAlgo = Algorithm::Dijkstra;
                 appState.gridChanged = true;
                 appState.statsRequested = true;
                 break;
@@ -84,18 +85,26 @@ void handleMouseEvent(AppState& appState, AnimationState& animationState, const 
         int row = mousePressed->position.y / CELL_SIZE;
 
         if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
-            if (mousePressed->button == sf::Mouse::Button::Left) {
-                updateCellType(appState, animationState, row, col, CellType::Wall);
-            }
-            else if (mousePressed->button == sf::Mouse::Button::Right &&
-                    sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift)) {
-                updateCellType(appState, animationState, row, col, CellType::Start);
-            }
-            else if (mousePressed->button == sf::Mouse::Button::Right) {
-                updateCellType(appState, animationState, row, col, CellType::End);
-            }
-            else { 
-                std::cout << "Unknown mouse button pressed.\n";
+            switch (mousePressed->button) {
+                case sf::Mouse::Button::Left:
+                    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift)) {
+                        updateCellType(appState, animationState, row, col, CellType::Mud);
+                    } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl)) {
+                        updateCellType(appState, animationState, row, col, CellType::Water);
+                    } else {
+                        updateCellType(appState, animationState, row, col, CellType::Wall);
+                    }
+                    break;
+                case sf::Mouse::Button::Right:
+                    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift)) {
+                        updateCellType(appState, animationState, row, col, CellType::Start);
+                    } else {
+                        updateCellType(appState, animationState, row, col, CellType::End);
+                    }
+                    break;
+                default:
+                    std::cout << "Unknown mouse button pressed.\n";
+                    break;
             }
         }
     }
@@ -195,9 +204,11 @@ void setCellColor(sf::RectangleShape& cell, CellType cellType, const AnimationSt
         case CellType::Explored:  cell.setFillColor(sf::Color::Cyan); break;
         case CellType::Start: cell.setFillColor(sf::Color::Green); break;
         case CellType::End:   cell.setFillColor(sf::Color::Blue); break;
+        case CellType::Mud:   cell.setFillColor(sf::Color(139, 69, 19)); break; // Brown
+        case CellType::Water: cell.setFillColor(sf::Color(0, 191, 255)); break; // Deep Sky Blue
     }
 
-    if (animationState.animatedGrid[row][col] && cellType != CellType::Start && cellType != CellType::End) {
+    if (animationState.animatedGrid[row][col] && cellType != CellType::Start && cellType != CellType::End && cellType != CellType::Mud && cellType != CellType::Water && cellType != CellType::Wall) {
         cell.setFillColor(sf::Color::Cyan);
     }
     

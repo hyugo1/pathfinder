@@ -6,6 +6,7 @@
 #include <array>
 #include <algorithm>
 #include <limits>
+#include <iostream>
 #include <functional>
 #include <ios>
 
@@ -29,6 +30,28 @@ std::vector<Position> reconstructPath(const std::vector<std::vector<Position>>& 
     return path;
 }
 
+int getMovementCost(CellType cellType) {
+    switch (cellType) {
+        case CellType::Open:
+        case CellType::Start:
+        case CellType::End:
+            return 1;
+        case CellType::Path:
+            return 1;
+        case CellType::Explored:
+            return 1;
+        case CellType::Wall:
+            return std::numeric_limits<int>::max(); // Impassable
+        case CellType::Mud:
+            // return 3;
+            return 300;
+        case CellType::Water:
+            // return 5;
+            return 500;
+        default:
+            return 1;
+    }
+}
 
 SearchResult breadthFirstSearch(const Grid& grid, Position start, Position end) {
     SearchState searchState = initializeSearchState(grid);
@@ -133,7 +156,7 @@ SearchResult aStarSearch(const Grid& grid, Position start, Position end) {
             return {reconstructPath(searchState.cameFrom, end), searchState.explorationOrder};
         }
         
-        int costtomove = 1;
+        int costtomove = getMovementCost(grid[current.first][current.second]);
         for (int i = 0; i < 4; ++i) {
             int nr = current.first + DIRECTIONS[i].first;
             int nc = current.second + DIRECTIONS[i].second;
@@ -158,7 +181,7 @@ SearchResult aStarSearch(const Grid& grid, Position start, Position end) {
 }
 
 // BFS minimizes the number of steps, whereas Dijkstra minimizes the total movement cost.
-SearchResult djikstra(const Grid& grid, Position start, Position end) {
+SearchResult Dijkstra(const Grid& grid, Position start, Position end) {
     // * g(n) → how far I’ve actually moved from start
     int rowCount = grid.size();
     int colCount = grid[0].size();
@@ -182,7 +205,7 @@ SearchResult djikstra(const Grid& grid, Position start, Position end) {
             return {reconstructPath(searchState.cameFrom, end), searchState.explorationOrder};
         }
         
-        int costtomove = 1;
+        int costtomove = getMovementCost(grid[current.first][current.second]); // get the movement cost for the current cell
         for (int i = 0; i < 4; ++i) {
             int nr = current.first + DIRECTIONS[i].first;
             int nc = current.second + DIRECTIONS[i].second;
@@ -209,7 +232,7 @@ SearchResult runSearch(const Grid& grid, Position start, Position end, Algorithm
         case Algorithm::DFS:   return depthFirstSearch(grid, start, end);
         case Algorithm::BFS:   return breadthFirstSearch(grid, start, end);
         case Algorithm::AStar: return aStarSearch(grid, start, end);
-        case Algorithm::Djikstra: return djikstra(grid, start, end);
+        case Algorithm::Dijkstra: return Dijkstra(grid, start, end);
         default:               return {};
     }
 }

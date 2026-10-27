@@ -18,7 +18,7 @@ std::string algorithmName(const Algorithm& algo) {
             return "BFS";
         case Algorithm::AStar:
             return "A*";
-        case Algorithm::Djikstra:
+        case Algorithm::Dijkstra:
             return "Dijkstra";
         default:
             return "None";
@@ -49,6 +49,9 @@ std::ostream& operator<<(std::ostream& os, CellType cell) {
         case CellType::End:   os << 'E'; break;
         case CellType::Path:  os << '*'; break;
         case CellType::Explored: os << 'o'; break;
+        case CellType::Mud:   os << 'M'; break;
+        case CellType::Water: os << 'W'; break;
+        default:              os << '?'; break;
     }
     return os;
 }
