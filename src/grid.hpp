@@ -15,7 +15,7 @@ Position findCellPosition(const Grid& grid, CellType target);
 bool isInBounds(const Grid& grid, int row, int col);
 bool isTraversable(const Grid& grid, int row, int col);
 std::vector<std::vector<bool>> createVisitedGrid(int rows, int cols);
-bool checkIfGridIsEmpty(const Grid& grid);
+bool isGridEmpty(const Grid& grid);
 std::pair<Position, Position> findStartAndEndPositions(const Grid& grid);
 bool validateExactlyOneStartAndEnd(const Grid& grid);
 bool validateGrid(const Grid& grid);

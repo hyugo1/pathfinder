@@ -33,12 +33,8 @@ std::pair<Position, Position> findStartAndEndPositions(const Grid& grid) {
     return {start, end};
 }
 
-bool checkIfGridIsEmpty(const Grid& grid) {
-    if (grid.empty() || grid[0].empty()) {
-        std::cerr << "Grid is empty.\n";
-        return false;
-    }
-    return true;
+bool isGridEmpty(const Grid& grid) {
+    return grid.empty() || grid[0].empty();
 }
 
 bool validateExactlyOneStartAndEnd(const Grid& grid) {
@@ -59,7 +55,7 @@ bool validateExactlyOneStartAndEnd(const Grid& grid) {
 }
 
 bool validateGrid(const Grid& grid) {
-    if (!checkIfGridIsEmpty(grid)) {
+    if (isGridEmpty(grid)) {
         return false;
     }
     if (!validateExactlyOneStartAndEnd(grid)) {
