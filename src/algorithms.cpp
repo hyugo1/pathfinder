@@ -3,14 +3,14 @@
 #include "grid.hpp"
 #include <queue>
 #include <stack>
-#include <iostream>
 #include <array>
-#include <string>
 #include <algorithm>
 #include <limits>
+#include <iostream>
 #include <functional>
 #include <ios>
-
+#include <cstdlib>
+#include <utility>
 
 SearchState initializeSearchState(const Grid& grid) {
     return {
@@ -32,6 +32,28 @@ std::vector<Position> reconstructPath(const std::vector<std::vector<Position>>& 
     return path;
 }
 
+int getMovementCost(CellType cellType) {
+    switch (cellType) {
+        case CellType::Open:
+            return OPEN_COST;
+        case CellType::Start:
+            return START_COST;
+        case CellType::End:
+            return END_COST;
+        case CellType::Path:
+            return PATH_COST;
+        case CellType::Explored:
+            return EXPLORED_COST;
+        case CellType::Wall:
+            return WALL_COST;
+        case CellType::Mud:
+            return MUD_COST;
+        case CellType::Water:
+            return WATER_COST;
+        default:
+            return 1;
+    }
+}
 
 SearchResult breadthFirstSearch(const Grid& grid, Position start, Position end) {
     SearchState searchState = initializeSearchState(grid);
@@ -72,11 +94,14 @@ SearchResult depthFirstSearch(const Grid& grid, Position start, Position end) {
 
     std::stack<Position> st;
     st.push(start);
-    visited[start.first][start.second] = true;
 
     while (!st.empty()) {
         Position current = st.top();
         st.pop();
+        if (visited[current.first][current.second]) {
+            continue;
+        }
+        visited[current.first][current.second] = true;
         searchState.explorationOrder.push_back(current);
         if (current == end) {
             return {reconstructPath(searchState.cameFrom, end), searchState.explorationOrder};
@@ -89,7 +114,6 @@ SearchResult depthFirstSearch(const Grid& grid, Position start, Position end) {
             int nc = current.second + direction.second;
 
             if (isTraversable(grid, nr, nc) && !visited[nr][nc]) {
-                visited[nr][nc] = true;
                 searchState.cameFrom[nr][nc] = current;
                 st.push({nr, nc});
             }
@@ -133,7 +157,6 @@ SearchResult aStarSearch(const Grid& grid, Position start, Position end) {
             return {reconstructPath(searchState.cameFrom, end), searchState.explorationOrder};
         }
         
-        int costtomove = 1;
         for (int i = 0; i < 4; ++i) {
             int nr = current.first + DIRECTIONS[i].first;
             int nc = current.second + DIRECTIONS[i].second;
@@ -141,6 +164,7 @@ SearchResult aStarSearch(const Grid& grid, Position start, Position end) {
             if (!isTraversable(grid, nr, nc)) {
                 continue;
             }
+            int costtomove = getMovementCost(grid[nr][nc]);
             
             int tentativeG = gCost[current.first][current.second] + costtomove; // distance from Start node to current node. cheapest way to get from start to current node. 
             if (tentativeG < gCost[nr][nc]) { // if the new path to neighbor is cheaper than any previous one
@@ -157,45 +181,64 @@ SearchResult aStarSearch(const Grid& grid, Position start, Position end) {
     return {{}, searchState.explorationOrder}; // no path found
 }
 
+// BFS minimizes the number of steps, whereas Dijkstra minimizes the total movement cost.
+SearchResult Dijkstra(const Grid& grid, Position start, Position end) {
+    // * g(n) → how far I’ve actually moved from start
+    int rowCount = grid.size();
+    int colCount = grid[0].size();
+    SearchState searchState = initializeSearchState(grid);
+    std::vector<std::vector<int>> gCost(rowCount, std::vector<int>(colCount, std::numeric_limits<int>::max())); // cost from start to this node
+    std::priority_queue<std::pair<int, Position>, std::vector<std::pair<int, Position>>, std::greater<>> pq;//std::greater makes it a minheap.default is maxheap.
+
+    gCost[start.first][start.second] = 0;
+    pq.push({0, start});
+
+    while (!pq.empty()) {
+        auto [g, current] = pq.top();
+        pq.pop();
+        
+        if (g > gCost[current.first][current.second]) {
+            continue; // skip outdated entry
+        }
+        searchState.explorationOrder.push_back(current);
+        
+        if (current == end) {
+            return {reconstructPath(searchState.cameFrom, end), searchState.explorationOrder};
+        }
+        
+        for (int i = 0; i < 4; ++i) {
+            int nr = current.first + DIRECTIONS[i].first;
+            int nc = current.second + DIRECTIONS[i].second;
+
+            if (!isTraversable(grid, nr, nc)) {
+                continue;
+            }
+            int costtomove = getMovementCost(grid[nr][nc]);
+            
+            int tentativeG = gCost[current.first][current.second] + costtomove;
+            if (tentativeG < gCost[nr][nc]) {
+                gCost[nr][nc] = tentativeG;
+                searchState.cameFrom[nr][nc] = current;
+                
+                pq.push({tentativeG, {nr, nc}});
+            }
+        }
+    }
+
+    return {{}, searchState.explorationOrder}; // no path found
+}
+
 SearchResult runSearch(const Grid& grid, Position start, Position end, Algorithm algo) {
     switch (algo) {
         case Algorithm::DFS:   return depthFirstSearch(grid, start, end);
         case Algorithm::BFS:   return breadthFirstSearch(grid, start, end);
         case Algorithm::AStar: return aStarSearch(grid, start, end);
+        case Algorithm::Dijkstra: return Dijkstra(grid, start, end);
         default:               return {};
     }
 }
 
-std::string algorithmName(const Algorithm& algo) {
-    switch (algo) {
-        case Algorithm::DFS:
-            return "DFS";
-        case Algorithm::BFS:
-            return "BFS";
-        case Algorithm::AStar:
-            return "A*";
-        default:
-            return "None";
-    }
-}
 void clearSearchResult(SearchResult& result) {
     result.path.clear();
     result.explorationOrder.clear();
-}
-
-Algorithm handleAlgorithmChoice(int algorithmChoice) {
-    switch (algorithmChoice) {
-        case 1:
-        // std::cout << "Using DFS.\n";
-            return Algorithm::DFS;
-        case 2:
-        // std::cout << "Using BFS.\n";
-            return Algorithm::BFS;
-        case 3:
-            // std::cout << "Using A*.\n";
-            return Algorithm::AStar;
-        default:
-            std::cerr << "Invalid choice. Exiting.\n";
-    }
-    return Algorithm::None;
 }

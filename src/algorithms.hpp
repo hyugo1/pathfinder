@@ -2,8 +2,18 @@
 
 #include "grid.hpp"
 #include <vector>
+#include <array>
 
-enum class Algorithm { None, DFS, BFS, AStar };
+enum class Algorithm { None, DFS, BFS, AStar, Dijkstra };
+
+constexpr int OPEN_COST = 1;
+constexpr int WALL_COST = -1; // impassable
+constexpr int PATH_COST = 1;
+constexpr int EXPLORED_COST = 1;
+constexpr int START_COST = 1;
+constexpr int END_COST = 1;
+constexpr int MUD_COST = 5;
+constexpr int WATER_COST = 10;
 
 struct SearchResult {
     std::vector<Position> path;
@@ -26,11 +36,10 @@ constexpr std::array<Position, 4> DIRECTIONS {{
 SearchState initializeSearchState(const Grid& grid);
 // cameFrom means which cell did I come from to reach this cell
 std::vector<Position> reconstructPath(const std::vector<std::vector<Position>>& cameFrom, Position end);
+int getMovementCost(CellType cellType);
 SearchResult breadthFirstSearch(const Grid& grid, Position start, Position end);
 SearchResult depthFirstSearch(const Grid& grid, Position start, Position end);
 int manhattanDistance(const Position& current, const Position& goal);
 SearchResult aStarSearch(const Grid& grid, Position start, Position end);
 SearchResult runSearch(const Grid& grid, Position start, Position end, Algorithm algo);
-std::string algorithmName(const Algorithm& algo);
 void clearSearchResult(SearchResult& result);
-Algorithm handleAlgorithmChoice(int algorithmChoice);

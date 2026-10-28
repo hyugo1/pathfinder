@@ -57,6 +57,30 @@ void updateCellType(AppState& appState, AnimationState& animationState, int row,
             appState.statsRequested = true;
             appState.end = {row, col};
             break;
+        case CellType::Mud:
+            if (appState.grid[row][col] == CellType::Start || appState.grid[row][col] == CellType::End) {
+                std::cout << "Cannot set Mud on Start or End.\n";
+                return;
+            }
+            if (appState.grid[row][col] == CellType::Mud) {
+                appState.grid[row][col] = CellType::Open;
+            } else {
+                appState.grid[row][col] = CellType::Mud;
+            }
+            appState.statsRequested = false;
+            break;
+        case CellType::Water:
+            if (appState.grid[row][col] == CellType::Start || appState.grid[row][col] == CellType::End) {
+                std::cout << "Cannot set Water on Start or End.\n";
+                return;
+            }
+            if (appState.grid[row][col] == CellType::Water) {
+                appState.grid[row][col] = CellType::Open;
+            } else {
+                appState.grid[row][col] = CellType::Water;
+            }
+            appState.statsRequested = false;
+            break;
         default:
             std::cout << "Unknown cell type.\n";
             break;

@@ -3,7 +3,7 @@
 #include <utility>
 #include <vector>
 
-enum class CellType { Open, Wall, Start, End, Path, Explored };
+enum class CellType { Open, Wall, Start, End, Path, Explored, Mud, Water };
 
 constexpr int ROWS = 80;
 constexpr int COLS = 80;

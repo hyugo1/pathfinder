@@ -6,10 +6,31 @@
 #include <limits>
 #include <ios>
 
+void printAlgorithmName(const Algorithm& algo) {
+    std::cout << "Using " << algorithmName(algo) << ".\n";
+}
+
+std::string algorithmName(const Algorithm& algo) {
+    switch (algo) {
+        case Algorithm::DFS:
+            return "DFS";
+        case Algorithm::BFS:
+            return "BFS";
+        case Algorithm::AStar:
+            return "A*";
+        case Algorithm::Dijkstra:
+            return "Dijkstra";
+        default:
+            return "None";
+    }
+}
+
 void printPerformanceStats(const SearchResult& result, const Algorithm& chosenAlgo, double executionTime) {
     std::cout << "\n--- Performance Stats ---\n";
     std::cout << "Algorithm: " << algorithmName(chosenAlgo) << "\n";
-    std::cout << "Execution Time: " << executionTime << " ms\n";
+    if (executionTime > 0.0) {
+        std::cout << "Execution Time: " << executionTime << " ms\n";
+    }
     std::cout << "Total Nodes Explored: " << result.explorationOrder.size() << "\n";
     std::cout << "Path Length: " << result.path.size() << "\n";
 }
@@ -28,11 +49,14 @@ std::ostream& operator<<(std::ostream& os, CellType cell) {
         case CellType::End:   os << 'E'; break;
         case CellType::Path:  os << '*'; break;
         case CellType::Explored: os << 'o'; break;
+        case CellType::Mud:   os << 'M'; break;
+        case CellType::Water: os << 'W'; break;
+        default:              os << '?'; break;
     }
     return os;
 }
 
-void printTerminalGridAndStats(Grid& copy, const SearchResult& result) {
+void printTerminalGridAndStats(Grid& copy, const SearchResult& result, const Algorithm& chosenAlgo) {
     for (const Position& position : result.explorationOrder) {
         if (copy[position.first][position.second] != CellType::Start && copy[position.first][position.second] != CellType::End) {
             copy[position.first][position.second] = CellType::Explored;
@@ -71,29 +95,25 @@ void printTerminalGridAndStats(Grid& copy, const SearchResult& result) {
             }
         std::cout << '\n';
     }
-    std::cout << "Total Nodes Explored: " << result.explorationOrder.size() << ".\n";
-
-    if (!result.path.empty()) {
-        std::cout << "Path Length: " << result.path.size() << ".\n";
-    } else {
-        std::cout << "No path found.\n";
-    }
+    printPerformanceStats(result, chosenAlgo, 0.0); // No execution time for terminal display
 }
 
-int askForAlgorithmChoice() {
-    int algorithmChoice {};
+Algorithm askForAlgorithmChoice() {
+    int choice {};
     std::cout << "Which algorithm do you want to use? "; 
-    for (int i = 1; i <= 3; ++i) {
-        std::cout << i << " for " << (i == 1 ? "DFS" : (i == 2 ? "BFS" : "A*")) << ", ";
-    }
-    std::cout << "\nEnter your algorithmChoice: ";
-    while (!(std::cin >> algorithmChoice) || algorithmChoice < 1 || algorithmChoice > 3) {
-        std::cerr << "Invalid input. Please enter a number between 1 and 3.\n";
+    std::cout << "Choose an algorithm:\n"
+              << "1. DFS\n"
+              << "2. BFS\n"
+              << "3. A-star\n"
+              << "4. Dijkstra\n"
+              << "Enter your choice: ";
+    while (!(std::cin >> choice) || choice < 1 || choice > 4) {
+        std::cerr << "Invalid input. Please enter a number between 1 and 4.\n";
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     }
 
-    return algorithmChoice;
+    return static_cast<Algorithm>(choice);
 }
 
 bool chooseThreadedMode() {
