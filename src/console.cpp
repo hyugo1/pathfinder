@@ -147,3 +147,27 @@ int askForModeChoice() {
     }
     return choice;
 }
+
+uint askForSeed() {
+    uint seed {};
+    std::cout << "Enter a seed for random grid generation(must be a positive integer): ";
+    while (!(std::cin >> seed)) {
+        std::cerr << "Invalid input. Please enter an integer.\n";
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    }
+    std::cout << "Using provided seed: " << seed << "\n";
+    return seed;
+}
+
+double askForWallDensity() {
+    double wallDensity {};
+    std::cout << "Enter wall density(probability that a cell will be a wall) (0.0 to 1.0): ";
+    while (!(std::cin >> wallDensity) || wallDensity < 0.0 || wallDensity > 1.0) {
+        std::cerr << "Invalid input. Please enter a number between 0.0 and 1.0.\n";
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    }
+    std::cout << "Using wall density: " << wallDensity << "\n";
+    return wallDensity;
+}

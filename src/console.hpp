@@ -11,3 +11,5 @@ void printTerminalGridAndStats(Grid& copy, const SearchResult& result, const Alg
 Algorithm askForAlgorithmChoice();
 bool chooseThreadedMode();
 int askForModeChoice();
+uint askForSeed();
+double askForWallDensity();

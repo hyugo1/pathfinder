@@ -2,7 +2,7 @@
 #include <random>
 #include "grid.hpp"
 
-Grid generateRandomGrid(int rows, int cols, double wallDensity, unsigned int seed) {
+Grid generateRandomGrid(int rows, int cols, double wallDensity = 0.3, unsigned int seed = 42) {
     std::mt19937 rng(seed);// seed so its not truly random, hence repeatable.
     std::uniform_real_distribution<double> dist(0.0, 1.0);// squash the long range into 0 to 1.
 

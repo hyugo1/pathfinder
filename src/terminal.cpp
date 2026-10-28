@@ -54,8 +54,10 @@ Grid readFromFile(const std::string filename) {
 }
 
 void runTerminalMode(AppState& appState) {
-    // appState.grid = readFromFile("grids/biggrid.txt");
-    appState.grid = generateRandomGrid(ROWS, COLS, 0.3, 42); //generate a random grid with 30% wall density and seed 42
+    uint seed {askForSeed()};
+    double wallDensity {askForWallDensity()};
+    appState.grid = generateRandomGrid(ROWS, COLS, wallDensity, seed);
+    
     if (!validateGrid(appState.grid)) {
         return;
     }
