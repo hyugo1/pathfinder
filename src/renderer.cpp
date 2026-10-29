@@ -73,7 +73,7 @@ void handleKeyboardEvent(AppState& appState, AnimationState& animationState, con
                 break;
             case sf::Keyboard::Key::G: {
                 std::cout << "Generating a new random grid.\n";
-                int seed = askForSeed();
+                unsigned int seed = askForSeed();
                 double wallDensity = askForWallDensity();
                 appState.grid = generateRandomGrid(ROWS, COLS, wallDensity, seed);
                 auto [start, end] = findStartAndEndPositions(appState.grid);
