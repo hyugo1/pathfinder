@@ -1,6 +1,7 @@
 #include "generator.hpp"
 #include <random>
 #include "grid.hpp"
+#include "appstate.hpp"
 
 Grid generateRandomGrid(int rows, int cols, double wallDensity = 0.3, unsigned int seed = 42) {
     std::mt19937 rng(seed);// seed so its not truly random, hence repeatable.

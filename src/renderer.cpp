@@ -4,6 +4,7 @@
 #include "grid.hpp"
 #include "console.hpp"
 #include "renderer.hpp"
+#include "generator.hpp"
 #include <SFML/Graphics.hpp>
 #include <iostream>
 
@@ -70,6 +71,19 @@ void handleKeyboardEvent(AppState& appState, AnimationState& animationState, con
                     THREAD_SLEEP_SECONDS = 2;
                 }
                 break;
+            case sf::Keyboard::Key::G: {
+                std::cout << "Generating a new random grid.\n";
+                int seed = askForSeed();
+                double wallDensity = askForWallDensity();
+                appState.grid = generateRandomGrid(ROWS, COLS, wallDensity, seed);
+                auto [start, end] = findStartAndEndPositions(appState.grid);
+                appState.start = start;
+                appState.end = end;
+                appState.statsRequested = false;
+                appState.gridChanged = true;
+                resetSearchState(appState.result, animationState);
+                break;
+            }
             case sf::Keyboard::Key::LShift:
                 break;
             default:
