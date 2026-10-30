@@ -6,6 +6,7 @@
 #include "generator.hpp"
 #include <string>
 #include <fstream>
+#include <optional>
 
 std::string parseLine(const std::string& line) {
     std::string result;
@@ -54,9 +55,15 @@ Grid readFromFile(const std::string filename) {
 }
 
 void runTerminalMode(AppState& appState) {
-    uint seed {askForSeed()};
-    double wallDensity {askForWallDensity()};
-    appState.grid = generateRandomGrid(ROWS, COLS, wallDensity, seed);
+    std::optional<unsigned int> seed{askForSeed()};
+    if (!seed) {
+        return;
+    }
+    std::optional<double> wallDensity{askForWallDensity()};
+    if (!wallDensity) {
+        return;
+    }
+    appState.grid = generateRandomGrid(ROWS, COLS, *wallDensity, *seed);
     
     if (!validateGrid(appState.grid)) {
         return;

@@ -3,7 +3,11 @@
 #include "console.hpp"
 #include "grid.hpp"
 #include "algorithms.hpp"
+#include <string>
+#include <optional>
+#include <random>
 #include <limits>
+#include <stdexcept>
 #include <ios>
 
 void printAlgorithmName(const Algorithm& algo) {
@@ -112,6 +116,7 @@ Algorithm askForAlgorithmChoice() {
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     }
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
     return static_cast<Algorithm>(choice);
 }
@@ -124,6 +129,7 @@ bool chooseThreadedMode() {
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     }
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     if (choice == 1) {
         std::cout << "Threaded mode selected.\n";
     } else {
@@ -140,6 +146,7 @@ int askForModeChoice() {
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     }
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     if (choice == 1) {
         std::cout << "Terminal mode selected.\n";
     } else {
@@ -148,26 +155,53 @@ int askForModeChoice() {
     return choice;
 }
 
-uint askForSeed() {
-    uint seed {};
-    std::cout << "Enter a seed for random grid generation(must be a positive integer): ";
-    while (!(std::cin >> seed)) {
-        std::cerr << "Invalid input. Please enter an integer.\n";
-        std::cin.clear();
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+std::optional<unsigned int> askForSeed() {
+    std::string input;
+    while (true) {
+        std::cout << "Enter a seed for random grid generation "
+                     "(positive integer, or press Enter for random): ";
+        if (!std::getline(std::cin, input)) {
+            return std::nullopt;
+        }
+        if (input.empty()) {
+            std::random_device rd;
+            unsigned int seed = rd();
+            std::cout << "Using random seed: " << seed << '\n';
+            return seed;
+        }
+        try {
+            if (input.find_first_not_of("0123456789") != std::string::npos) {
+                throw std::invalid_argument("Seed must contain digits only");
+            }
+            std::size_t pos = 0;
+            unsigned long value = std::stoul(input, &pos);
+            if (pos != input.size() ||
+                value == 0 ||
+                value > std::numeric_limits<unsigned int>::max()) {
+                throw std::invalid_argument("Seed out of range");
+            }
+            unsigned int seed = static_cast<unsigned int>(value);
+            std::cout << "Using seed: " << seed << '\n';
+            return seed;
+        }
+        catch (const std::exception&) {
+            std::cerr << "Invalid input. Please enter a positive integer.\n";
+        }
     }
-    std::cout << "Using provided seed: " << seed << "\n";
-    return seed;
 }
 
-double askForWallDensity() {
+std::optional<double> askForWallDensity() {
     double wallDensity {};
     std::cout << "Enter wall density(probability that a cell will be a wall) (0.0 to 1.0): ";
     while (!(std::cin >> wallDensity) || wallDensity < 0.0 || wallDensity > 1.0) {
+        if (std::cin.eof()) {
+            return std::nullopt;
+        }
         std::cerr << "Invalid input. Please enter a number between 0.0 and 1.0.\n";
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     }
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     std::cout << "Using wall density: " << wallDensity << "\n";
     return wallDensity;
 }

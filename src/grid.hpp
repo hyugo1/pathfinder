@@ -5,8 +5,8 @@
 
 enum class CellType { Open, Wall, Start, End, Path, Explored, Mud, Water };
 
-constexpr int ROWS = 80;
-constexpr int COLS = 80;
+constexpr int ROWS = 50;
+constexpr int COLS = 50;
 
 using Position = std::pair<int, int>;
 using Grid = std::vector<std::vector<CellType>>;

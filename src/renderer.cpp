@@ -6,7 +6,10 @@
 #include "renderer.hpp"
 #include "generator.hpp"
 #include <SFML/Graphics.hpp>
+#include <chrono>
 #include <iostream>
+#include <optional>
+#include <thread>
 
 
 void handleKeyboardEvent(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event, sf::RenderWindow& window) {
@@ -57,7 +60,6 @@ void handleKeyboardEvent(AppState& appState, AnimationState& animationState, con
                 appState.end = {-1, -1};
                 
                 appState.statsRequested = false;
-
                 resetGrid(appState.grid);
                 resetSearchState(appState.result, animationState);
                 ++appState.latestVersion;  
@@ -73,15 +75,19 @@ void handleKeyboardEvent(AppState& appState, AnimationState& animationState, con
                 break;
             case sf::Keyboard::Key::G: {
                 std::cout << "Generating a new random grid.\n";
-                unsigned int seed = askForSeed();
-                double wallDensity = askForWallDensity();
-                appState.grid = generateRandomGrid(ROWS, COLS, wallDensity, seed);
+                std::optional<unsigned int> seed = askForSeed();
+                if (!seed) break;
+                std::optional<double> wallDensity = askForWallDensity();
+                if (!wallDensity) break;
+                appState.grid = generateRandomGrid(ROWS, COLS, *wallDensity, *seed);
                 auto [start, end] = findStartAndEndPositions(appState.grid);
                 appState.start = start;
                 appState.end = end;
                 appState.statsRequested = false;
                 appState.gridChanged = true;
+                appState.chosenAlgo = Algorithm::None;
                 resetSearchState(appState.result, animationState);
+                ++appState.latestVersion;  
                 break;
             }
             case sf::Keyboard::Key::LShift:
@@ -156,7 +162,7 @@ void processGridChanges(AppState& appState, AnimationState& animationState, bool
 }
 
 void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationState& animationState, bool threadedMode, SearchWorker& worker) {
-    while (const std::optional event = window.pollEvent()) {
+    while (const std::optional<sf::Event> event = window.pollEvent()) {
         if (event->is<sf::Event::Closed>()) {
             window.close();
         }
