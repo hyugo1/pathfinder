@@ -8,6 +8,7 @@
 #include <random>
 #include <limits>
 #include <stdexcept>
+#include <cmath>
 #include <ios>
 
 void printAlgorithmName(const Algorithm& algo) {
@@ -173,7 +174,7 @@ std::optional<unsigned int> askForSeed() {
             if (input.find_first_not_of("0123456789") != std::string::npos) {
                 throw std::invalid_argument("Seed must contain digits only");
             }
-            std::size_t pos = 0;
+            std::size_t pos = 0;// length of the number
             unsigned long value = std::stoul(input, &pos);
             if (pos != input.size() ||
                 value == 0 ||
@@ -191,17 +192,31 @@ std::optional<unsigned int> askForSeed() {
 }
 
 std::optional<double> askForWallDensity() {
-    double wallDensity {};
-    std::cout << "Enter wall density(probability that a cell will be a wall) (0.0 to 1.0): ";
-    while (!(std::cin >> wallDensity) || wallDensity < 0.0 || wallDensity > 1.0) {
-        if (std::cin.eof()) {
+    std::string input;
+    while (true) {
+        std::cout << "Enter wall density(probability that a cell will be a wall) (0.0 to 1.0): ";
+        if (!std::getline(std::cin, input)) {
             return std::nullopt;
         }
-        std::cerr << "Invalid input. Please enter a number between 0.0 and 1.0.\n";
-        std::cin.clear();
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        if (input.empty()) {
+            double wallDensity = 0.3;// Default wall density
+            std::cout << "Using default wall density: " << wallDensity << '\n';
+            return wallDensity;
+        }
+
+        try {
+            std::size_t pos;//size of the string
+            double wallDensity = std::stod(input, &pos);
+            if (pos != input.size() || wallDensity < 0.0 || wallDensity > 1.0 || !std::isfinite(wallDensity)) {
+                throw std::invalid_argument("Invalid wall density");
+            }
+            std::cout << "Using density: " << wallDensity << '\n';
+            return wallDensity;
+
+        } catch (const std::exception&) {
+            std::cerr << "Invalid input. Please enter a number between 0.0 and 1.0.\n";
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        }
     }
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    std::cout << "Using wall density: " << wallDensity << "\n";
-    return wallDensity;
 }
