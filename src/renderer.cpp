@@ -79,7 +79,7 @@ void handleKeyboardEvent(AppState& appState, AnimationState& animationState, con
                 if (!seed) break;
                 std::optional<double> wallDensity = askForWallDensity();
                 if (!wallDensity) break;
-                appState.grid = generateRandomGrid(ROWS, COLS, *wallDensity, *seed);
+                appState.grid = generateRandomGrid(ROWS, COLS, *wallDensity, 0.1, 0.1, *seed);
                 auto [start, end] = findStartAndEndPositions(appState.grid);
                 appState.start = start;
                 appState.end = end;

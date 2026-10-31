@@ -63,7 +63,7 @@ void runTerminalMode(AppState& appState) {
     if (!wallDensity) {
         return;
     }
-    appState.grid = generateRandomGrid(ROWS, COLS, *wallDensity, *seed);
+    appState.grid = generateRandomGrid(ROWS, COLS, 0.1, 0.1, *wallDensity, *seed);
     
     if (!validateGrid(appState.grid)) {
         return;
