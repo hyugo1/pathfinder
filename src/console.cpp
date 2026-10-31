@@ -220,3 +220,63 @@ std::optional<double> askForWallDensity() {
         }
     }
 }
+
+std::optional<double> askForMudCount() {
+    std::string input;
+    while (true) {
+        std::cout << "Enter the number of mud blobs (0 to 100): ";
+        if (!std::getline(std::cin, input)) {
+            return std::nullopt;
+        }
+        if (input.empty()) {
+            double mudCount = 10; // Default mud count
+            std::cout << "Using default mud count: " << mudCount << '\n';
+            return mudCount;
+        }
+
+        try {
+            std::size_t pos;
+            double mudCount = std::stod(input, &pos);
+            if (pos != input.size() || mudCount < 0.0 || mudCount > 100.0 || !std::isfinite(mudCount)) {
+                throw std::invalid_argument("Invalid mud count");
+            }
+            std::cout << "Using mud count: " << mudCount << '\n';
+            return mudCount;
+
+        } catch (const std::exception&) {
+            std::cerr << "Invalid input. Please enter a number between 0 and 100.\n";
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        }
+    }
+}
+
+std::optional<double> askForWaterCount() {
+    std::string input;
+    while (true) {
+        std::cout << "Enter the number of water blobs (0 to 100): ";
+        if (!std::getline(std::cin, input)) {
+            return std::nullopt;
+        }
+        if (input.empty()) {
+            double waterCount = 10; // Default water count
+            std::cout << "Using default water count: " << waterCount << '\n';
+            return waterCount;
+        }
+
+        try {
+            std::size_t pos;
+            double waterCount = std::stod(input, &pos);
+            if (pos != input.size() || waterCount < 0.0 || waterCount > 100.0 || !std::isfinite(waterCount)) {
+                throw std::invalid_argument("Invalid water count");
+            }
+            std::cout << "Using water count: " << waterCount << '\n';
+            return waterCount;
+
+        } catch (const std::exception&) {
+            std::cerr << "Invalid input. Please enter a number between 0 and 100.\n";
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        }
+    }
+}

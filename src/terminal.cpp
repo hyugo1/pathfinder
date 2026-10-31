@@ -63,7 +63,16 @@ void runTerminalMode(AppState& appState) {
     if (!wallDensity) {
         return;
     }
-    appState.grid = generateRandomGrid(ROWS, COLS, 0.1, 0.1, *wallDensity, *seed);
+    std::optional<double> mudCount{askForMudCount()};
+    if (!mudCount) {
+        return;
+    }
+    std::optional<double> waterCount{askForWaterCount()};
+    if (!waterCount) {
+        return;
+    }
+
+    appState.grid = generateRandomGrid(ROWS, COLS, *wallDensity, *mudCount, *waterCount, *seed);
     
     if (!validateGrid(appState.grid)) {
         return;
