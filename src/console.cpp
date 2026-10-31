@@ -37,6 +37,7 @@ void printPerformanceStats(const SearchResult& result, const Algorithm& chosenAl
         std::cout << "Execution Time: " << executionTime << " ms\n";
     }
     std::cout << "Total Nodes Explored: " << result.explorationOrder.size() << "\n";
+    std::cout << "Total Cost: " << result.totalCost << "\n";
     std::cout << "Path Length: " << result.path.size() << "\n";
 }
 

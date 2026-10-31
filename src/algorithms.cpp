@@ -249,16 +249,31 @@ SearchResult Dijkstra(const Grid& grid, Position start, Position end) {
 }
 
 SearchResult runSearch(const Grid& grid, Position start, Position end, Algorithm algo) {
+    SearchResult result;
     switch (algo) {
-        case Algorithm::DFS:   return depthFirstSearch(grid, start, end);
-        case Algorithm::BFS:   return breadthFirstSearch(grid, start, end);
-        case Algorithm::AStar: return aStarSearch(grid, start, end);
-        case Algorithm::Dijkstra: return Dijkstra(grid, start, end);
-        default:               return {};
+        case Algorithm::DFS:
+            result = depthFirstSearch(grid, start, end);
+            break;
+        case Algorithm::BFS:   
+            result = breadthFirstSearch(grid, start, end);
+            break;
+        case Algorithm::AStar: 
+            result = aStarSearch(grid, start, end);
+            break;
+        case Algorithm::Dijkstra: 
+            result = Dijkstra(grid, start, end);
+            break;
+        default:               
+            break;
     }
+    for (const Position& pos : result.path) {
+        result.totalCost += getMovementCost(grid[pos.first][pos.second]);
+    }
+    return result;
 }
 
 void clearSearchResult(SearchResult& result) {
     result.path.clear();
     result.explorationOrder.clear();
+    result.totalCost = 0;
 }
