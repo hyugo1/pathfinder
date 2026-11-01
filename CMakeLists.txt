@@ -9,6 +9,17 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # 1. Find SFML and the requested components (Case-sensitive depending on version, e.g., Graphics or graphics)
 find_package(SFML 3 REQUIRED COMPONENTS System Window Graphics)
 
+# Build the grid and algorithms as a reusable library.
+add_library(pathfinder_lib
+    src/grid.cpp
+    src/algorithms.cpp
+)
+
+target_include_directories(pathfinder_lib
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
 add_executable(main
     src/main.cpp
     src/grid.cpp
@@ -24,6 +35,9 @@ add_executable(main
 # 2. Link against the modern targets using PRIVATE
 target_link_libraries(main PRIVATE SFML::System SFML::Window SFML::Graphics)
 
+enable_testing()
+
+add_subdirectory(tests)
 
 # cmake -S . -B build
 # cmake --build build --clean-first
