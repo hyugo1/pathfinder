@@ -94,7 +94,7 @@ TEST(GridTest, isInBoundsWithNoneSquareGrid) {
         {CellType::Open,  CellType::Open, CellType::Open},
         {CellType::Open,  CellType::Open, CellType::Open}
     };
-    const int rows = static_cast<int>(grid[0].size());
+    const int rows = static_cast<int>(grid.size());
     const int cols = static_cast<int>(grid[0].size());
 
     for (int i {0}; i < rows; ++i) {
@@ -102,4 +102,19 @@ TEST(GridTest, isInBoundsWithNoneSquareGrid) {
             EXPECT_TRUE(isInBounds(grid, i, j));
         }
     }
+}
+
+TEST_F(GridFixture, isTraversable) {
+    grid[2][0] = CellType::Wall;
+    grid[2][1] = CellType::Wall;
+    grid[2][2] = CellType::Wall;
+    const int rows = static_cast<int>(grid.size());
+    const int cols = static_cast<int>(grid[0].size());
+    
+    EXPECT_TRUE(isTraversable(grid, 0, 0));
+    EXPECT_TRUE(isTraversable(grid, 1, 2));//end
+
+    EXPECT_FALSE(isTraversable(grid, rows, cols));//out of bounds
+    EXPECT_FALSE(isTraversable(grid, 2, 0));//wall
+    EXPECT_FALSE(isTraversable(grid, 2, 2));//wall
 }
