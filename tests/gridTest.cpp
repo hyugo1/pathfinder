@@ -127,3 +127,24 @@ TEST_F(GridFixture, IsTraversable_CoordinatesOutsideGridEdges_ReturnsFalse) {
 TEST_F(GridFixture, IsTraversable_WallCell_ReturnsFalse) {
     EXPECT_FALSE(isTraversable(grid, 0, 2));//wall
 }
+
+TEST_F(GridFixture, FindCellPosition_ExistingCell_ReturnsCorrectPosition) {
+    const Position expected{0, 0};
+    EXPECT_EQ(expected, findCellPosition(grid, CellType::Start));
+}
+
+TEST(GridTest, FindCellPosition_NonExistingCell_ReturnsInvalidPosition) {
+    Grid grid = {
+        {CellType::Open, CellType::Open, CellType::Wall},
+        {CellType::Open,  CellType::Open, CellType::End},
+    };
+    const Position expected{-1, -1};
+    EXPECT_EQ(expected, findCellPosition(grid, CellType::Start));
+}
+
+TEST_F(GridFixture, FindStartEndPositions_ValidStartEndPositions_ReturnsCorrectPositions) {
+    Position start{0,0};
+    Position end{1,2};
+    std::pair<Position, Position> expected{start, end};
+    EXPECT_EQ(expected, findStartAndEndPositions(grid));
+}
