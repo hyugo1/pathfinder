@@ -49,10 +49,6 @@ TEST_F(GridFixture, ExactlyOneStartAndEnd) {
     EXPECT_TRUE(validateExactlyOneStartAndEnd(grid));
 }
 
-TEST_F(GridFixture, TestIsValidGrid) {
-    EXPECT_TRUE(validateGrid(grid));
-}
-
 TEST_F(GridFixture, IsValidGrid) {
     EXPECT_TRUE(validateGrid(grid));
 }
@@ -73,6 +69,37 @@ TEST_F(GridFixture, ResetGrid) {
     for (const auto& row : grid) {
         for (CellType cell : row) {
             EXPECT_EQ(cell, CellType::Open);
+        }
+    }
+}
+
+TEST_F(GridFixture, isInBounds) {
+    const int rows = static_cast<int>(grid.size());
+    const int cols = static_cast<int>(grid[0].size());
+
+    EXPECT_TRUE(isInBounds(grid, 0, 0));
+    EXPECT_TRUE(isInBounds(grid, rows - 1, cols - 1));
+
+    EXPECT_FALSE(isInBounds(grid, -1, -1));
+    EXPECT_FALSE(isInBounds(grid, rows - 1, -1));
+    EXPECT_FALSE(isInBounds(grid, -1, cols - 1));
+    EXPECT_FALSE(isInBounds(grid, rows, cols));
+}
+
+TEST(GridTest, isInBoundsWithNoneSquareGrid) {
+    Grid grid = {
+        {CellType::Start, CellType::Open, CellType::Wall},
+        {CellType::Open,  CellType::Open, CellType::End},
+        {CellType::Open,  CellType::Open, CellType::Open},
+        {CellType::Open,  CellType::Open, CellType::Open},
+        {CellType::Open,  CellType::Open, CellType::Open}
+    };
+    const int rows = static_cast<int>(grid[0].size());
+    const int cols = static_cast<int>(grid[0].size());
+
+    for (int i {0}; i < rows; ++i) {
+        for (int j {0}; j < cols; ++j) {
+            EXPECT_TRUE(isInBounds(grid, i, j));
         }
     }
 }
