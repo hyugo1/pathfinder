@@ -44,6 +44,8 @@ Grid readFromFile(const std::string filename) {
                     case 'E': row.push_back(CellType::End); break;
                     case '*': row.push_back(CellType::Path); break;
                     case 'o': row.push_back(CellType::Explored); break;
+                    case 'M': row.push_back(CellType::Mud); break;
+                    case 'W': row.push_back(CellType::Water); break;
                     default: row.push_back(CellType::Open);
                 }
             }

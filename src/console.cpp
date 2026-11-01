@@ -75,7 +75,9 @@ void printTerminalGridAndStats(Grid& copy, const SearchResult& result, const Alg
     }
     const std::string RED = "\033[31m";
     const std::string GREEN = "\033[32m";
+    const std::string YELLOW = "\033[33m";
     const std::string BLUE = "\033[34m";
+    const std::string PURPLE = "\033[35m";
     const std::string LIGHT_BLUE = "\033[36m";
     const std::string RESET = "\033[0m";
     
@@ -92,6 +94,12 @@ void printTerminalGridAndStats(Grid& copy, const SearchResult& result, const Alg
                     std::cout << GREEN << cell << RESET;
                     break;
                 case CellType::End:
+                    std::cout << PURPLE << cell << RESET;
+                    break;
+                case CellType::Mud:
+                    std::cout << YELLOW << cell << RESET;
+                    break;
+                case CellType::Water:
                     std::cout << BLUE << cell << RESET;
                     break;
                 default:
