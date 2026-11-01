@@ -18,6 +18,7 @@ add_executable(main
     src/renderer.cpp
     src/console.cpp
     src/terminal.cpp
+    src/generator.cpp
 )
 
 # 2. Link against the modern targets using PRIVATE

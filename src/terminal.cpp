@@ -3,8 +3,10 @@
 #include "console.hpp"
 #include "algorithms.hpp"
 #include "grid.hpp"
+#include "generator.hpp"
 #include <string>
 #include <fstream>
+#include <optional>
 
 std::string parseLine(const std::string& line) {
     std::string result;
@@ -42,6 +44,8 @@ Grid readFromFile(const std::string filename) {
                     case 'E': row.push_back(CellType::End); break;
                     case '*': row.push_back(CellType::Path); break;
                     case 'o': row.push_back(CellType::Explored); break;
+                    case 'M': row.push_back(CellType::Mud); break;
+                    case 'W': row.push_back(CellType::Water); break;
                     default: row.push_back(CellType::Open);
                 }
             }
@@ -53,7 +57,25 @@ Grid readFromFile(const std::string filename) {
 }
 
 void runTerminalMode(AppState& appState) {
-    appState.grid = readFromFile("grids/biggrid.txt");
+    std::optional<unsigned int> seed{askForSeed()};
+    if (!seed) {
+        return;
+    }
+    std::optional<double> wallDensity{askForWallDensity()};
+    if (!wallDensity) {
+        return;
+    }
+    std::optional<double> mudCount{askForMudCount()};
+    if (!mudCount) {
+        return;
+    }
+    std::optional<double> waterCount{askForWaterCount()};
+    if (!waterCount) {
+        return;
+    }
+
+    appState.grid = generateRandomGrid(ROWS, COLS, *wallDensity, *mudCount, *waterCount, *seed);
+    
     if (!validateGrid(appState.grid)) {
         return;
     }

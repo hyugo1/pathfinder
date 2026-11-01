@@ -18,6 +18,7 @@ constexpr int WATER_COST = 10;
 struct SearchResult {
     std::vector<Position> path;
     std::vector<Position> explorationOrder;
+    int totalCost{0};
 };
 
 struct SearchState {
@@ -41,5 +42,6 @@ SearchResult breadthFirstSearch(const Grid& grid, Position start, Position end);
 SearchResult depthFirstSearch(const Grid& grid, Position start, Position end);
 int manhattanDistance(const Position& current, const Position& goal);
 SearchResult aStarSearch(const Grid& grid, Position start, Position end);
+SearchResult Dijkstra(const Grid& grid, Position start, Position end);
 SearchResult runSearch(const Grid& grid, Position start, Position end, Algorithm algo);
 void clearSearchResult(SearchResult& result);

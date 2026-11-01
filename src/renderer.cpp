@@ -4,8 +4,12 @@
 #include "grid.hpp"
 #include "console.hpp"
 #include "renderer.hpp"
+#include "generator.hpp"
 #include <SFML/Graphics.hpp>
+#include <chrono>
 #include <iostream>
+#include <optional>
+#include <thread>
 
 
 void handleKeyboardEvent(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event, sf::RenderWindow& window) {
@@ -56,7 +60,6 @@ void handleKeyboardEvent(AppState& appState, AnimationState& animationState, con
                 appState.end = {-1, -1};
                 
                 appState.statsRequested = false;
-
                 resetGrid(appState.grid);
                 resetSearchState(appState.result, animationState);
                 ++appState.latestVersion;  
@@ -70,6 +73,27 @@ void handleKeyboardEvent(AppState& appState, AnimationState& animationState, con
                     THREAD_SLEEP_SECONDS = 2;
                 }
                 break;
+            case sf::Keyboard::Key::G: {
+                std::cout << "Generating a new random grid.\n";
+                std::optional<unsigned int> seed = askForSeed();
+                if (!seed) break;
+                std::optional<double> wallDensity = askForWallDensity();
+                if (!wallDensity) break;
+                std::optional<double> mudCount = askForMudCount();
+                if (!mudCount) break;
+                std::optional<double> waterCount = askForWaterCount();
+                if (!waterCount) break;
+                appState.grid = generateRandomGrid(ROWS, COLS, *wallDensity, *mudCount, *waterCount, *seed);
+                auto [start, end] = findStartAndEndPositions(appState.grid);
+                appState.start = start;
+                appState.end = end;
+                appState.statsRequested = false;
+                appState.gridChanged = true;
+                appState.chosenAlgo = Algorithm::None;
+                resetSearchState(appState.result, animationState);
+                ++appState.latestVersion;  
+                break;
+            }
             case sf::Keyboard::Key::LShift:
                 break;
             default:
@@ -142,7 +166,7 @@ void processGridChanges(AppState& appState, AnimationState& animationState, bool
 }
 
 void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationState& animationState, bool threadedMode, SearchWorker& worker) {
-    while (const std::optional event = window.pollEvent()) {
+    while (const std::optional<sf::Event> event = window.pollEvent()) {
         if (event->is<sf::Event::Closed>()) {
             window.close();
         }

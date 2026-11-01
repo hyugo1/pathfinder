@@ -1,4 +1,6 @@
 #pragma once
+#include <optional>
+#include <string>
 #include "appstate.hpp"
 #include "grid.hpp"
 #include "algorithms.hpp"
@@ -11,3 +13,7 @@ void printTerminalGridAndStats(Grid& copy, const SearchResult& result, const Alg
 Algorithm askForAlgorithmChoice();
 bool chooseThreadedMode();
 int askForModeChoice();
+std::optional<unsigned int> askForSeed();
+std::optional<double> askForWallDensity();
+std::optional<double> askForMudCount();
+std::optional<double> askForWaterCount();

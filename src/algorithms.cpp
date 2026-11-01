@@ -13,6 +13,10 @@
 #include <utility>
 
 SearchState initializeSearchState(const Grid& grid) {
+    if (isGridEmpty(grid)) {
+        std::cerr << "Error: Grid is empty. Cannot initialize search state.\n";
+        return {};
+    }
     return {
         std::vector<std::vector<Position>>(grid.size(), std::vector<Position>(grid[0].size(), {-1, -1})),
         {}
@@ -56,6 +60,10 @@ int getMovementCost(CellType cellType) {
 }
 
 SearchResult breadthFirstSearch(const Grid& grid, Position start, Position end) {
+    if (isGridEmpty(grid) || !isInBounds(grid, start.first, start.second)
+                          || !isInBounds(grid, end.first, end.second)) {
+        return {};
+    }
     SearchState searchState = initializeSearchState(grid);
     std::vector<std::vector<bool>> visited = createVisitedGrid(grid.size(), grid[0].size());
 
@@ -89,6 +97,10 @@ SearchResult breadthFirstSearch(const Grid& grid, Position start, Position end) 
 }
 
 SearchResult depthFirstSearch(const Grid& grid, Position start, Position end) {
+    if (isGridEmpty(grid) || !isInBounds(grid, start.first, start.second)
+                          || !isInBounds(grid, end.first, end.second)) {
+        return {};
+    }
     SearchState searchState = initializeSearchState(grid);
     std::vector<std::vector<bool>> visited = createVisitedGrid(grid.size(), grid[0].size());
 
@@ -132,6 +144,10 @@ SearchResult aStarSearch(const Grid& grid, Position start, Position end) {
     // * g(n) → how far I’ve actually moved from start
     // * h(n) → guess to the goal (Manhattan distance)
     // * f(n) = g + h → “how promising this path looks”
+    if (isGridEmpty(grid) || !isInBounds(grid, start.first, start.second)
+                          || !isInBounds(grid, end.first, end.second)) {
+        return {};
+    }
     int rowCount = grid.size();
     int colCount = grid[0].size();
     SearchState searchState = initializeSearchState(grid);
@@ -183,6 +199,10 @@ SearchResult aStarSearch(const Grid& grid, Position start, Position end) {
 
 // BFS minimizes the number of steps, whereas Dijkstra minimizes the total movement cost.
 SearchResult Dijkstra(const Grid& grid, Position start, Position end) {
+    if (isGridEmpty(grid) || !isInBounds(grid, start.first, start.second)
+                          || !isInBounds(grid, end.first, end.second)) {
+        return {};
+    }
     // * g(n) → how far I’ve actually moved from start
     int rowCount = grid.size();
     int colCount = grid[0].size();
@@ -229,16 +249,31 @@ SearchResult Dijkstra(const Grid& grid, Position start, Position end) {
 }
 
 SearchResult runSearch(const Grid& grid, Position start, Position end, Algorithm algo) {
+    SearchResult result;
     switch (algo) {
-        case Algorithm::DFS:   return depthFirstSearch(grid, start, end);
-        case Algorithm::BFS:   return breadthFirstSearch(grid, start, end);
-        case Algorithm::AStar: return aStarSearch(grid, start, end);
-        case Algorithm::Dijkstra: return Dijkstra(grid, start, end);
-        default:               return {};
+        case Algorithm::DFS:
+            result = depthFirstSearch(grid, start, end);
+            break;
+        case Algorithm::BFS:   
+            result = breadthFirstSearch(grid, start, end);
+            break;
+        case Algorithm::AStar: 
+            result = aStarSearch(grid, start, end);
+            break;
+        case Algorithm::Dijkstra: 
+            result = Dijkstra(grid, start, end);
+            break;
+        default:               
+            break;
     }
+    for (const Position& pos : result.path) {
+        result.totalCost += getMovementCost(grid[pos.first][pos.second]);
+    }
+    return result;
 }
 
 void clearSearchResult(SearchResult& result) {
     result.path.clear();
     result.explorationOrder.clear();
+    result.totalCost = 0;
 }
