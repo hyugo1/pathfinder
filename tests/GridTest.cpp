@@ -35,3 +35,18 @@ TEST(GridTest, ExactlyOneStartAndEnd) {
     };
     EXPECT_TRUE(validateExactlyOneStartAndEnd(grid));
 }
+
+TEST(GridTest, ResetGrid) {
+    Grid grid = {
+        {CellType::Start, CellType::Open, CellType::Wall},
+        {CellType::Open, CellType::Open, CellType::End},
+        {CellType::Open, CellType::Wall, CellType::Open}
+    };
+    resetGrid(grid);
+    EXPECT_FALSE(validateExactlyOneStartAndEnd(grid));
+    for (int i{0}; i < grid.size(); ++i) {
+        for (int j{0}; j < grid[0].size(); ++j) {
+            EXPECT_EQ(grid[i][j], CellType::Open);
+        }
+    }
+}

@@ -66,8 +66,8 @@ bool validateGrid(const Grid& grid) {
 }
 
 void resetGrid(Grid& grid) {
-    for (int r = 0; r < ROWS; ++r) {
-        for (int c = 0; c < COLS; ++c) {
+    for (int r = 0; r < grid.size(); ++r) {
+        for (int c = 0; c < grid[0].size(); ++c) {
             grid[r][c] = CellType::Open;
         }
     }
