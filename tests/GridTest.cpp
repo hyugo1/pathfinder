@@ -40,8 +40,31 @@ TEST_F(GridFixture, EndDoesNotExist) {
     EXPECT_FALSE(validateExactlyOneStartAndEnd(grid));
 }
 
+TEST_F(GridFixture, MoreThanOneEnd) {
+    grid[2][2] = CellType::End;
+    EXPECT_FALSE(validateExactlyOneStartAndEnd(grid));
+}
+
 TEST_F(GridFixture, ExactlyOneStartAndEnd) {
     EXPECT_TRUE(validateExactlyOneStartAndEnd(grid));
+}
+
+TEST_F(GridFixture, TestIsValidGrid) {
+    EXPECT_TRUE(validateGrid(grid));
+}
+
+TEST_F(GridFixture, IsValidGrid) {
+    EXPECT_TRUE(validateGrid(grid));
+}
+
+TEST_F(GridFixture, StartDoesNotExistInIsValidGrid) {
+    grid[0][0] = CellType::Open;
+    EXPECT_FALSE(validateGrid(grid));
+}
+
+TEST_F(GridFixture, MultipleStartsExistInIsValidGrid) {
+    grid[2][2] = CellType::Start;
+    EXPECT_FALSE(validateGrid(grid));
 }
 
 TEST_F(GridFixture, ResetGrid) {
