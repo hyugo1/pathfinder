@@ -1,5 +1,4 @@
 #include "grid.hpp"
-#include <iostream>
 #include <algorithm>
 #include <vector>
 
@@ -47,7 +46,6 @@ bool validateExactlyOneStartAndEnd(const Grid& grid) {
     }
 
     if (startCount != 1 || endCount != 1) {
-        std::cerr << "Grid must contain exactly one Start and one End.\n";
         return false;
     }
 
