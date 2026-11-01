@@ -6,4 +6,4 @@
 
 void runTerminalMode(AppState& appState);
 std::string parseLine(const std::string& line);
-Grid readFromFile(std::string filename);
+Grid readFromFile(const std::string& filename);
