@@ -7,6 +7,8 @@
 #include <string>
 #include <fstream>
 #include <optional>
+#include <filesystem>
+#include <iostream>
 
 std::string parseLine(const std::string& line) {
     std::string result;
@@ -21,8 +23,13 @@ std::string parseLine(const std::string& line) {
     return result;
 }
 
-Grid readFromFile(const std::string filename) {
+Grid readFromFile(const std::string& filename) {
     std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open file: " << filename << '\n';
+        return {};
+    }
+
     std::string line;
     Grid grid;
 
@@ -75,6 +82,7 @@ void runTerminalMode(AppState& appState) {
     }
 
     appState.grid = generateRandomGrid(ROWS, COLS, *wallDensity, *mudCount, *waterCount, *seed);
+    // appState.grid = readFromFile("grids/testgrid.txt");
     
     if (!validateGrid(appState.grid)) {
         return;

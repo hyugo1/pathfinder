@@ -1,5 +1,4 @@
 #include "grid.hpp"
-#include <iostream>
 #include <algorithm>
 #include <vector>
 
@@ -47,7 +46,6 @@ bool validateExactlyOneStartAndEnd(const Grid& grid) {
     }
 
     if (startCount != 1 || endCount != 1) {
-        std::cerr << "Grid must contain exactly one Start and one End.\n";
         return false;
     }
 
@@ -66,8 +64,8 @@ bool validateGrid(const Grid& grid) {
 }
 
 void resetGrid(Grid& grid) {
-    for (int r = 0; r < ROWS; ++r) {
-        for (int c = 0; c < COLS; ++c) {
+    for (int r = 0; r < grid.size(); ++r) {
+        for (int c = 0; c < grid[0].size(); ++c) {
             grid[r][c] = CellType::Open;
         }
     }
