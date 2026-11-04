@@ -9,9 +9,9 @@ protected:
     Grid grid;
 
     void SetUp() override {
-        // S*#
-        // #*E
-        // ...
+        // S.#
+        // #..
+        // ..E
         grid = {
             {CellType::Start, CellType::Open, CellType::Wall},
             {CellType::Wall,  CellType::Open, CellType::Open},
@@ -34,7 +34,7 @@ TEST(AlgorithmTest, BFS_EmptyGrid_ReturnsEmptyResult) {
 
 TEST_F(AlgorithmFixture, BFS_StartOutOfBounds_ReturnsEmptySearchResult) {
     Position start = {-1, 0};
-    Position end = {1, 2};
+    Position end = {2, 2};
     
     SearchResult result = breadthFirstSearch(grid, start, end);
     EXPECT_TRUE(result.path.empty());
@@ -64,15 +64,17 @@ TEST_F(AlgorithmFixture, BFS_TestNoPath_ReturnsNoPath) {
 
 TEST_F(AlgorithmFixture, BFS_CheckOrder_ReturnsSpecificOrder) {
     Position start = {0, 0};
-    Position end = {1, 2};
+    Position end = {2, 2};
     
     SearchResult result = breadthFirstSearch(grid, start, end);
     
     //up, down left, right is the order
     EXPECT_TRUE(result.explorationOrder.front() == start);
-    std::vector<Position> expected_path = {{0, 0}, {0, 1}, {1, 1}, {1,2}};
-
+    std::vector<Position> expected_path = {{0, 0}, {0, 1}, {1, 1}, {2,1}, {2, 2}};
     EXPECT_EQ(result.path, expected_path);
+
+    std::vector<Position> expected_explorationOrder = {{0, 0}, {0, 1}, {1, 1}, {2, 1}, {1, 2}, {2, 0}, {2, 2}};//explore is done only when the end node is popped
+    EXPECT_EQ(result.explorationOrder, expected_explorationOrder);
 
     EXPECT_FALSE(result.explorationOrder.empty());
     EXPECT_EQ(result.explorationOrder.front(), start);
