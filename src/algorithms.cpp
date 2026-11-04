@@ -107,27 +107,25 @@ SearchResult depthFirstSearch(const Grid& grid, Position start, Position end) {
 
     std::stack<Position> st;
     st.push(start);
+    visited[start.first][start.second] = true;
 
     while (!st.empty()) {
         Position current = st.top();
         st.pop();
-        if (visited[current.first][current.second]) {
-            continue;
-        }
-        visited[current.first][current.second] = true;
+
         searchState.explorationOrder.push_back(current);
         if (current == end) {
             auto path = reconstructPath(searchState.cameFrom, end);
             return {path, searchState.explorationOrder, calculatePathCost(grid, path)};
         }
 
-        // backtrack in reverse order to maintain the original order of exploration
         for (int i = DIRECTIONS.size() - 1; i >= 0; --i) {
             const Position& direction = DIRECTIONS[i];
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
             if (isTraversable(grid, nr, nc) && !visited[nr][nc]) {
+                visited[nr][nc] = true;
                 searchState.cameFrom[nr][nc] = current;
                 st.push({nr, nc});
             }
