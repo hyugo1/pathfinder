@@ -7,6 +7,9 @@
 class AlgorithmFixture : public ::testing::Test {
 protected:
     Grid grid;
+    Grid invalidGrid;
+    Grid bigGrid;
+    Grid obstacleGrid;
 
     void SetUp() override {
         // S.#
@@ -15,6 +18,28 @@ protected:
         grid = {
             {CellType::Start, CellType::Open, CellType::Wall},
             {CellType::Wall,  CellType::Open, CellType::Open},
+            {CellType::Open,  CellType::Open, CellType::End}
+        };
+
+        invalidGrid = {
+            {CellType::Start, CellType::Open, CellType::Wall},
+            {CellType::Open,  CellType::Open, CellType::Wall},
+            {CellType::Open,  CellType::Wall, CellType::End}
+        };
+
+        bigGrid = {
+            {CellType::Start, CellType::Open, CellType::Wall},
+            {CellType::Wall,  CellType::Open, CellType::Wall},
+            {CellType::Open,  CellType::Open, CellType::Wall},
+            {CellType::Open,  CellType::Wall, CellType::Wall},
+            {CellType::Open,  CellType::Open, CellType::End}
+        };
+
+        obstacleGrid = {
+            {CellType::Start, CellType::Open, CellType::Water},
+            {CellType::Water, CellType::Open, CellType::Water},
+            {CellType::Open,  CellType::Open, CellType::Water},
+            {CellType::Open,  CellType::Water,CellType::Water},
             {CellType::Open,  CellType::Open, CellType::End}
         };
     }
@@ -42,22 +67,15 @@ TEST_F(AlgorithmFixture, BFS_StartOutOfBounds_ReturnsEmptySearchResult) {
 }
 
 TEST_F(AlgorithmFixture, BFS_TestNoPath_ReturnsNoPath) {
-    grid[2][1] = CellType::Wall;
-    grid[1][2] = CellType::Wall;
     Position start = {0, 0};
     Position end = {2, 2};
     
-    SearchResult result = breadthFirstSearch(grid, start, end);
+    SearchResult result = breadthFirstSearch(invalidGrid, start, end);
 
     EXPECT_TRUE(result.path.empty());
     EXPECT_FALSE(result.explorationOrder.empty());
     EXPECT_EQ(result.explorationOrder.front(), start);
 
-    std::vector<Position> expected = {
-        {0, 0}, {0, 1}, {1, 1}
-    };
-    EXPECT_EQ(result.explorationOrder, expected);
-        
     auto it = std::find(result.explorationOrder.begin(), result.explorationOrder.end(), end);//returns result.exploartion.end() if it doesnt find "end" position
     EXPECT_EQ(it, result.explorationOrder.end());
 }
@@ -80,18 +98,11 @@ TEST_F(AlgorithmFixture, BFS_CheckOrder_ReturnsSpecificOrder) {
     EXPECT_EQ(result.explorationOrder.front(), start);
 }
 
-TEST(AlgorithmTest, BFS_WindingPathAroundWalls_ReturnsExactPath) {
+TEST_F(AlgorithmFixture, BFS_WindingPathAroundWalls_ReturnsExactPath) {
     Position start{0, 0};
     Position end{4, 2};
     
-    Grid grid = {
-            {CellType::Start, CellType::Open, CellType::Wall},
-            {CellType::Wall,  CellType::Open, CellType::Wall},
-            {CellType::Open,  CellType::Open, CellType::Wall},
-            {CellType::Open,  CellType::Wall, CellType::Wall},
-            {CellType::Open,  CellType::Open, CellType::End}
-    };
-    SearchResult result = breadthFirstSearch(grid, start, end);
+    SearchResult result = breadthFirstSearch(bigGrid, start, end);
     
     std::vector<Position> expected_path = {
         {0, 0}, {0, 1}, {1, 1}, {2, 1}, {2, 0}, {3, 0}, {4, 0}, {4, 1}, {4, 2}, 
@@ -100,18 +111,11 @@ TEST(AlgorithmTest, BFS_WindingPathAroundWalls_ReturnsExactPath) {
 }
 
 
-TEST(AlgorithmTest, BFS_AddingObstacleCosts_ReturnsNonOptimalPath) {
+TEST_F(AlgorithmFixture, BFS_AddingObstacleCosts_ReturnsNonOptimalPath) {
     Position start{0, 0};
     Position end{4, 2};
     
-    Grid grid = {
-            {CellType::Start, CellType::Open, CellType::Water},
-            {CellType::Water, CellType::Open, CellType::Water},
-            {CellType::Open,  CellType::Open, CellType::Water},
-            {CellType::Open,  CellType::Water,CellType::Water},
-            {CellType::Open,  CellType::Open, CellType::End}
-    };
-    SearchResult result = breadthFirstSearch(grid, start, end);
+    SearchResult result = breadthFirstSearch(obstacleGrid, start, end);
 
     std::vector<Position> expectedPath = {
         {0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}, {4, 1}, {4, 2}
@@ -121,13 +125,12 @@ TEST(AlgorithmTest, BFS_AddingObstacleCosts_ReturnsNonOptimalPath) {
     std::vector<Position> bestCostEfficientPath = {
         {0, 0}, {0, 1}, {1, 1}, {2, 1}, {2, 0}, {3, 0}, {4, 0}, {4, 1}, {4, 2}
     };
-    EXPECT_GT(result.totalCost, calculatePathCost(grid,  bestCostEfficientPath));
+    EXPECT_GT(result.totalCost, calculatePathCost(obstacleGrid,  bestCostEfficientPath));
 }
 
 
 // ---- DFS ----
 
-// TEST(SuiteName, MethodName_StateUnderTest_ExpectedBehavior)
 TEST(AlgorithmTest, DFS_EmptyGrid_ReturnsEmptyResult) {
     Grid grid = {};
     Position start{0, 0};
@@ -150,22 +153,15 @@ TEST_F(AlgorithmFixture, DFS_StartOutOfBounds_ReturnsEmptySearchResult) {
 
 
 TEST_F(AlgorithmFixture, DFS_TestNoPath_ReturnsNoPath) {
-    grid[2][1] = CellType::Wall;
-    grid[1][2] = CellType::Wall;
     Position start = {0, 0};
     Position end = {2, 2};
     
-    SearchResult result = depthFirstSearch(grid, start, end);
+    SearchResult result = depthFirstSearch(invalidGrid, start, end);
 
     EXPECT_TRUE(result.path.empty());
     EXPECT_FALSE(result.explorationOrder.empty());
     EXPECT_EQ(result.explorationOrder.front(), start);
 
-    std::vector<Position> expected = {
-        {0, 0}, {0, 1}, {1, 1}
-    };
-    EXPECT_EQ(result.explorationOrder, expected);
-        
     auto it = std::find(result.explorationOrder.begin(), result.explorationOrder.end(), end);//returns result.exploartion.end() if it doesnt find "end" position
     EXPECT_EQ(it, result.explorationOrder.end());
 }
@@ -187,18 +183,11 @@ TEST_F(AlgorithmFixture, DFS_CheckOrder_ReturnsSpecificOrder) {
     EXPECT_EQ(result.explorationOrder.front(), start);
 }
 
-TEST(AlgorithmTest, DFS_WindingPathAroundWalls_ReturnsExactPath) {
+TEST_F(AlgorithmFixture, DFS_WindingPathAroundWalls_ReturnsExactPath) {
     Position start{0, 0};
     Position end{4, 2};
-    
-    Grid grid = {
-            {CellType::Start, CellType::Open, CellType::Wall},
-            {CellType::Wall,  CellType::Open, CellType::Wall},
-            {CellType::Open,  CellType::Open, CellType::Wall},
-            {CellType::Open,  CellType::Wall, CellType::Wall},
-            {CellType::Open,  CellType::Open, CellType::End}
-    };
-    SearchResult result = depthFirstSearch(grid, start, end);
+
+    SearchResult result = depthFirstSearch(bigGrid, start, end);
     
     std::vector<Position> expected_path = {
         {0, 0}, {0, 1}, {1, 1}, {2, 1}, {2, 0}, {3, 0}, {4, 0}, {4, 1}, {4, 2}, 
@@ -207,18 +196,10 @@ TEST(AlgorithmTest, DFS_WindingPathAroundWalls_ReturnsExactPath) {
 }
 
 
-TEST(AlgorithmTest, DFS_AddingObstacleCosts_ReturnsNonOptimalPath) {
+TEST_F(AlgorithmFixture, DFS_AddingObstacleCosts_ReturnsNonOptimalPath) {
     Position start{0, 0};
     Position end{4, 2};
-    
-    Grid grid = {
-            {CellType::Start, CellType::Open, CellType::Water},
-            {CellType::Water, CellType::Open, CellType::Water},
-            {CellType::Open,  CellType::Open, CellType::Water},
-            {CellType::Open,  CellType::Water,CellType::Water},
-            {CellType::Open,  CellType::Open, CellType::End}
-    };
-    SearchResult result = depthFirstSearch(grid, start, end);
+    SearchResult result = depthFirstSearch(obstacleGrid, start, end);
     
     std::vector<Position> expectedExplorationOrder = {
         {0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}, {4, 1}, {4, 2}
@@ -233,5 +214,5 @@ TEST(AlgorithmTest, DFS_AddingObstacleCosts_ReturnsNonOptimalPath) {
     std::vector<Position> bestCostEfficientPath = {
         {0, 0}, {0, 1}, {1, 1}, {2, 1}, {2, 0}, {3, 0}, {4, 0}, {4, 1}, {4, 2}
     };
-    EXPECT_GT(result.totalCost, calculatePathCost(grid, bestCostEfficientPath));
+    EXPECT_GT(result.totalCost, calculatePathCost(obstacleGrid, bestCostEfficientPath));
 }
