@@ -100,6 +100,31 @@ TEST(AlgorithmTest, BFS_WindingPathAroundWalls_ReturnsExactPath) {
 }
 
 
+TEST(AlgorithmTest, BFS_AddingObstacleCosts_ReturnsNonOptimalPath) {
+    Position start{0, 0};
+    Position end{4, 2};
+    
+    Grid grid = {
+            {CellType::Start, CellType::Open, CellType::Water},
+            {CellType::Water, CellType::Open, CellType::Water},
+            {CellType::Open,  CellType::Open, CellType::Water},
+            {CellType::Open,  CellType::Water,CellType::Water},
+            {CellType::Open,  CellType::Open, CellType::End}
+    };
+    SearchResult result = breadthFirstSearch(grid, start, end);
+
+    std::vector<Position> expectedPath = {
+        {0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}, {4, 1}, {4, 2}
+    };
+    EXPECT_EQ(result.path, expectedPath);
+
+    std::vector<Position> bestCostEfficientPath = {
+        {0, 0}, {0, 1}, {1, 1}, {2, 1}, {2, 0}, {3, 0}, {4, 0}, {4, 1}, {4, 2}
+    };
+    EXPECT_GT(result.totalCost, calculatePathCost(grid,  bestCostEfficientPath));
+}
+
+
 // ---- DFS ----
 
 // TEST(SuiteName, MethodName_StateUnderTest_ExpectedBehavior)
@@ -179,4 +204,34 @@ TEST(AlgorithmTest, DFS_WindingPathAroundWalls_ReturnsExactPath) {
         {0, 0}, {0, 1}, {1, 1}, {2, 1}, {2, 0}, {3, 0}, {4, 0}, {4, 1}, {4, 2}, 
     };
     EXPECT_EQ(result.path, expected_path);
+}
+
+
+TEST(AlgorithmTest, DFS_AddingObstacleCosts_ReturnsNonOptimalPath) {
+    Position start{0, 0};
+    Position end{4, 2};
+    
+    Grid grid = {
+            {CellType::Start, CellType::Open, CellType::Water},
+            {CellType::Water, CellType::Open, CellType::Water},
+            {CellType::Open,  CellType::Open, CellType::Water},
+            {CellType::Open,  CellType::Water,CellType::Water},
+            {CellType::Open,  CellType::Open, CellType::End}
+    };
+    SearchResult result = depthFirstSearch(grid, start, end);
+    
+    std::vector<Position> expectedExplorationOrder = {
+        {0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}, {4, 1}, {4, 2}
+    };
+    EXPECT_EQ(result.explorationOrder, expectedExplorationOrder);
+
+    std::vector<Position> expectedPath = {
+        {0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}, {4, 1}, {4, 2}
+    };
+    EXPECT_EQ(result.path, expectedPath);
+
+    std::vector<Position> bestCostEfficientPath = {
+        {0, 0}, {0, 1}, {1, 1}, {2, 1}, {2, 0}, {3, 0}, {4, 0}, {4, 1}, {4, 2}
+    };
+    EXPECT_GT(result.totalCost, calculatePathCost(grid, bestCostEfficientPath));
 }
