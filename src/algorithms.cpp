@@ -173,7 +173,7 @@ SearchResult aStarSearch(const Grid& grid, Position start, Position end) {
             return {reconstructPath(searchState.cameFrom, end), searchState.explorationOrder, gCost[end.first][end.second]};
         }
         
-        for (int i = 0; i < 4; ++i) {
+        for (int i = 0; i < DIRECTIONS.size(); ++i) {
             int nr = current.first + DIRECTIONS[i].first;
             int nc = current.second + DIRECTIONS[i].second;
 
@@ -226,7 +226,7 @@ SearchResult Dijkstra(const Grid& grid, Position start, Position end) {
             return {reconstructPath(searchState.cameFrom, end), searchState.explorationOrder, gCost[end.first][end.second]};
         }
         
-        for (int i = 0; i < 4; ++i) {
+        for (int i = 0; i < DIRECTIONS.size(); ++i) {
             int nr = current.first + DIRECTIONS[i].first;
             int nc = current.second + DIRECTIONS[i].second;
 

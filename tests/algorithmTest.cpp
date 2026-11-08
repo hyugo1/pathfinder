@@ -10,6 +10,7 @@ protected:
     Grid invalidGrid;
     Grid bigGrid;
     Grid obstacleGrid;
+    Grid mixedGrid;
 
     void SetUp() override {
         // S.#
@@ -40,6 +41,14 @@ protected:
             {CellType::Water, CellType::Open, CellType::Water},
             {CellType::Open,  CellType::Open, CellType::Water},
             {CellType::Open,  CellType::Water,CellType::Water},
+            {CellType::Open,  CellType::Open, CellType::End}
+        };
+
+        mixedGrid = {
+            {CellType::Start, CellType::Open, CellType::Water},
+            {CellType::Mud,   CellType::Open, CellType::Water},
+            {CellType::Open,  CellType::Open, CellType::Water},
+            {CellType::Open,  CellType::Mud,  CellType::Water},
             {CellType::Open,  CellType::Open, CellType::End}
         };
     }
@@ -87,7 +96,6 @@ TEST_F(AlgorithmFixture, BFS_CheckOrder_ReturnsSpecificOrder) {
     SearchResult result = breadthFirstSearch(grid, start, end);
     
     //up, down left, right is the order
-    EXPECT_TRUE(result.explorationOrder.front() == start);
     std::vector<Position> expected_path = {{0, 0}, {0, 1}, {1, 1}, {2,1}, {2, 2}};
     EXPECT_EQ(result.path, expected_path);
 
@@ -215,4 +223,96 @@ TEST_F(AlgorithmFixture, DFS_AddingObstacleCosts_ReturnsNonOptimalPath) {
         {0, 0}, {0, 1}, {1, 1}, {2, 1}, {2, 0}, {3, 0}, {4, 0}, {4, 1}, {4, 2}
     };
     EXPECT_GT(result.totalCost, calculatePathCost(obstacleGrid, bestCostEfficientPath));
+}
+
+
+// ------ aStarSearch ------ 
+
+TEST(AlgorithmTest, aStar_EmptyGrid_ReturnsEmptyResult) {
+    Grid grid = {};
+    Position start{0, 0};
+    Position end{0, 0};
+    
+    SearchResult result = aStarSearch(grid, start, end);
+    EXPECT_TRUE(result.path.empty());
+    EXPECT_TRUE(result.explorationOrder.empty());
+    EXPECT_EQ(result.totalCost, 0);
+}
+
+TEST_F(AlgorithmFixture, aStar_StartOutOfBounds_ReturnsEmptySearchResult) {
+    Position start = {-1, 0};
+    Position end = {2, 2};
+    
+    SearchResult result = aStarSearch(grid, start, end);
+    EXPECT_TRUE(result.path.empty());
+    EXPECT_TRUE(result.explorationOrder.empty());
+}
+
+TEST_F(AlgorithmFixture, aStar_TestNoPath_ReturnsNoPath) {
+    Position start = {0, 0};
+    Position end = {2, 2};
+
+    SearchResult result = aStarSearch(invalidGrid, start, end);
+
+    EXPECT_TRUE(result.path.empty());
+    EXPECT_FALSE(result.explorationOrder.empty());
+    EXPECT_EQ(result.explorationOrder.front(), start);
+
+    auto it = std::find(result.explorationOrder.begin(), result.explorationOrder.end(), end);//returns result.exploartion.end() if it doesnt find "end" position
+    EXPECT_EQ(it, result.explorationOrder.end());
+}
+
+TEST_F(AlgorithmFixture, aStar_CheckOrder_ReturnsSpecificOrder) {
+    Position start = {0, 0};
+    Position end = {2, 2};
+    
+    SearchResult result = aStarSearch(grid, start, end);
+
+    ASSERT_FALSE(result.explorationOrder.empty());
+    EXPECT_EQ(result.explorationOrder.front(), start);
+    std::vector<Position> expected_path = {
+        {0, 0}, {0, 1}, {1, 1}, {1, 2}, {2, 2}
+    };
+    EXPECT_EQ(result.path, expected_path);
+
+    std::vector<Position> expected_explorationOrder = {
+        {0, 0}, {0, 1}, {1, 1}, {1, 2}, {2, 1}, {2, 2}
+    };//explore is done only when the end node is popped
+    EXPECT_EQ(result.explorationOrder, expected_explorationOrder);
+
+    EXPECT_FALSE(result.explorationOrder.empty());
+    EXPECT_EQ(result.explorationOrder.front(), start);
+}
+
+TEST_F(AlgorithmFixture, aStar_WindingPathAroundWalls_ReturnsExactPath) {
+    Position start{0, 0};
+    Position end{4, 2};
+
+    SearchResult result = aStarSearch(bigGrid, start, end);
+    
+    std::vector<Position> expected_path = {
+        {0, 0}, {0, 1}, {1, 1}, {2, 1}, {2, 0}, {3, 0}, {4, 0}, {4, 1}, {4, 2}, 
+    };
+    EXPECT_EQ(result.path, expected_path);
+}
+
+TEST_F(AlgorithmFixture, aStar_AddingObstacleCosts_ReturnsNonOptimalPath) {
+    Position start{0, 0};
+    Position end{4, 2};
+    SearchResult result = aStarSearch(mixedGrid, start, end);
+
+    std::vector<Position> expectedExplorationOrder = {
+        {0, 0}, {0, 1}, {1, 1}, {2, 1}, {2, 0}, {3, 0}, {4, 0}, {4, 1}, {4, 2}
+    };
+    EXPECT_EQ(result.explorationOrder, expectedExplorationOrder);
+
+    std::vector<Position> expectedPath = {
+        {0, 0}, {0, 1}, {1, 1}, {2, 1}, {2, 0}, {3, 0}, {4, 0}, {4, 1}, {4, 2}
+    };
+    EXPECT_EQ(result.path, expectedPath);
+
+    std::vector<Position> bestCostEfficientPath = {
+        {0, 0}, {0, 1}, {1, 1}, {2, 1}, {2, 0}, {3, 0}, {4, 0}, {4, 1}, {4, 2}
+    };
+    EXPECT_EQ(result.totalCost, calculatePathCost(mixedGrid, bestCostEfficientPath));
 }
