@@ -7,8 +7,13 @@
 #include "algorithms.hpp"
 #include "appstate.hpp"
 
-constexpr int PANEL_WIDTH = 200;
-constexpr int PANEL_HEIGHT = 200;
+constexpr int PANEL_WIDTH = 120;
+constexpr int PANEL_HEIGHT = 100;
+
+constexpr int PANEL_SPACE = 10;
+
+constexpr double BUTTON_WIDTH = 100.0f;
+constexpr double BUTTON_HEIGHT = 40.0f;
 
 enum class UiAction {
     None,

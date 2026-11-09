@@ -8,14 +8,14 @@
 #include <sstream>
 
 UI::UI() {
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + 10.f, 10.f}, {100.f, 40.f}), "Clear", UiAction::Clear);
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + 10.f, 60.f}, {100.f, 40.f}), "Generate", UiAction::Generate);
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + 10.f, 110.f}, {100.f, 40.f}), "DFS", UiAction::SelectDFS);
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + 10.f, 160.f}, {100.f, 40.f}), "BFS", UiAction::SelectBFS);
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + 10.f, 210.f}, {100.f, 40.f}), "A*", UiAction::SelectAStar);
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + 10.f, 260.f}, {100.f, 40.f}), "Dijkstra", UiAction::SelectDijkstra);
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + 10.f, 310.f}, {100.f, 40.f}), "Toggle Delay", UiAction::ToggleDelay);
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + 10.f, 360.f}, {100.f, 40.f}), "Toggle Seed Lock", UiAction::ToggleSeedLock);
+    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, 10.f}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "Clear", UiAction::Clear);
+    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, 60.f}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "Generate", UiAction::Generate);
+    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, 110.f}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "DFS", UiAction::SelectDFS);
+    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, 160.f}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "BFS", UiAction::SelectBFS);
+    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, 210.f}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "A*", UiAction::SelectAStar);
+    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, 260.f}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "Dijkstra", UiAction::SelectDijkstra);
+    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, 310.f}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "Toggle Delay", UiAction::ToggleDelay);
+    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, 360.f}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "Toggle Seed Lock", UiAction::ToggleSeedLock);
 }
 
 void UI::draw(sf::RenderWindow& window) {
