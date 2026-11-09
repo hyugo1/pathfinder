@@ -35,11 +35,7 @@ class UI {
         std::vector<Button> buttonList;
 
     public:
-        void draw(sf::RenderWindow& window) {
-            sf::RectangleShape box({100.f, 40.f});
-            box.setPosition({COLS * CELL_SIZE + 10.f, 10.f});
-            box.setFillColor(sf::Color(200, 200, 200));
-            window.draw(box);
-        }
-
+        UI();
+        void draw(sf::RenderWindow& window);
+        UiAction handleClick(sf::Vector2i pos);
 };

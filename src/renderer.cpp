@@ -54,16 +54,7 @@ void handleKeyboardEvent(AppState& appState, AnimationState& animationState, con
                 appState.statsRequested = true;
                 break;
             case sf::Keyboard::Key::C:
-                std::cout << "Clearing the entire grid.\n";
-                appState.gridChanged = true;
-                appState.chosenAlgo = Algorithm::None;
-                appState.start = {-1, -1};
-                appState.end = {-1, -1};
-                
-                appState.statsRequested = false;
-                resetGrid(appState.grid);
-                resetSearchState(appState.result, animationState);
-                ++appState.latestVersion;  
+                clearAll(appState, animationState);
                 break;
             case sf::Keyboard::Key::D:
                 if (THREAD_SLEEP_SECONDS == 2) {
@@ -166,8 +157,93 @@ void processGridChanges(AppState& appState, AnimationState& animationState, bool
     }
 }
 
-void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationState& animationState, bool threadedMode, SearchWorker& worker) {
+void clearAll(AppState& appState, AnimationState& animationState) {
+    std::cout << "Clearing the entire grid.\n";
+    appState.gridChanged = true;
+    appState.chosenAlgo = Algorithm::None;
+    appState.start = {-1, -1};
+    appState.end = {-1, -1};
+    
+    appState.statsRequested = false;
+    resetGrid(appState.grid);
+    resetSearchState(appState.result, animationState);
+    ++appState.latestVersion; 
+}
+
+void applyUiAction(AppState& appState, AnimationState& animationState, UiAction action) {
+    switch (action) {
+        case UiAction::Clear:
+            clearAll(appState, animationState);
+            break;
+        case UiAction::Generate: {
+            std::optional<unsigned int> seed = askForSeed();
+            if (!seed) break;
+            std::optional<double> wallDensity = askForWallDensity();
+            if (!wallDensity) break;
+            std::optional<double> mudCount = askForMudCount();
+            if (!mudCount) break;
+            std::optional<double> waterCount = askForWaterCount();
+            if (!waterCount) break;
+            appState.grid = generateRandomGrid(ROWS, COLS, *wallDensity, *mudCount, *waterCount, *seed);
+            auto [start, end] = findStartAndEndPositions(appState.grid);
+            appState.start = start;
+            appState.end = end;
+            appState.statsRequested = false;
+            appState.gridChanged = true;
+            appState.chosenAlgo = Algorithm::None;
+            resetSearchState(appState.result, animationState);
+            ++appState.latestVersion;  
+            break;
+        }
+        case UiAction::SelectDFS:
+            printAlgorithmName(Algorithm::DFS);
+            appState.chosenAlgo = Algorithm::DFS;
+            appState.gridChanged = true;
+            appState.statsRequested = true;
+            break;
+        case UiAction::SelectBFS:
+            printAlgorithmName(Algorithm::BFS);
+            appState.chosenAlgo = Algorithm::BFS;
+            appState.gridChanged = true;
+            appState.statsRequested = true;
+            break;
+        case UiAction::SelectAStar:
+            printAlgorithmName(Algorithm::AStar);
+            appState.chosenAlgo = Algorithm::AStar;
+            appState.gridChanged = true;
+            appState.statsRequested = true;
+            break;
+        case UiAction::SelectDijkstra:
+            printAlgorithmName(Algorithm::Dijkstra);
+            appState.chosenAlgo = Algorithm::Dijkstra;
+            appState.gridChanged = true;
+            appState.statsRequested = true;
+            break;
+        case UiAction::ToggleDelay:
+                if (THREAD_SLEEP_SECONDS == 2) {
+                    std::cout << "Removing delay.\n";
+                    THREAD_SLEEP_SECONDS = 0;
+                } else {
+                    std::cout << "Adding delay of 2 second to make threading more visible.\n";
+                    THREAD_SLEEP_SECONDS = 2;
+                }
+            break;
+        case UiAction::ToggleSeedLock:
+            break;
+        case UiAction::None:
+            break;
+    }
+}
+
+void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationState& animationState, bool threadedMode, SearchWorker& worker, UI& ui) {
     while (const std::optional<sf::Event> event = window.pollEvent()) {
+        if (const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>()) {
+            if (mousePressed->button == sf::Mouse::Button::Left) {
+                UiAction action = ui.handleClick(mousePressed->position);
+                std::cout << "action id: " << static_cast<int>(action) << "\n";
+                applyUiAction(appState, animationState, action);
+            }
+        }
         if (event->is<sf::Event::Closed>()) {
             window.close();
         }
@@ -210,7 +286,7 @@ void runGuiMode(AppState& appState, sf::RenderWindow& window, bool threadedMode)
 
     while (window.isOpen()) {
         // --- EVENT ---
-        processGUIFrame(window, appState, animationState, threadedMode, worker);
+        processGUIFrame(window, appState, animationState, threadedMode, worker, ui);
 
         // --- RENDER ---
         window.clear(sf::Color::White);

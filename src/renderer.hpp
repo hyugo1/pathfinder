@@ -4,6 +4,7 @@
 #include "algorithms.hpp"
 #include "appstate.hpp"
 #include "searchworker.hpp"
+#include "ui.hpp"
 #include <SFML/Graphics.hpp>
 #include <optional>
 
@@ -12,8 +13,10 @@ void handleMouseEvent(AppState& appState, AnimationState& animationState, const 
 void processWorkerResult(AppState& appState, AnimationState& animationState, SearchWorker& worker);
 void processGridChanges(AppState& appState, AnimationState& animationState, bool threadedMode
 , SearchWorker& worker);
+void clearAll(AppState& appState, AnimationState& animationState);
+void applyUiAction(AppState& appState, AnimationState& animationState, UiAction action);
 void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationState
-& animationState, bool threadedMode, SearchWorker& worker);
+& animationState, bool threadedMode, SearchWorker& worker, UI& ui);
 void renderGUI(sf::RenderWindow& window, const AppState& appState, const AnimationState& animationState);
 void runGuiMode(AppState& appState, sf::RenderWindow& window, bool threadedMode);
 void setCellColor(sf::RectangleShape& cell, CellType cellType, const AnimationState& animationState, int row, int col);
