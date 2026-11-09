@@ -77,7 +77,8 @@ SearchResult breadthFirstSearch(const Grid& grid, Position start, Position end) 
         q.pop();
 
         if (current == end) {
-            return {reconstructPath(searchState.cameFrom, end), searchState.explorationOrder};
+            auto path = reconstructPath(searchState.cameFrom, end);
+            return {path, searchState.explorationOrder, calculatePathCost(grid, path)};
         }
 
         for (const Position& direction : DIRECTIONS) {
@@ -106,26 +107,25 @@ SearchResult depthFirstSearch(const Grid& grid, Position start, Position end) {
 
     std::stack<Position> st;
     st.push(start);
+    visited[start.first][start.second] = true;
 
     while (!st.empty()) {
         Position current = st.top();
         st.pop();
-        if (visited[current.first][current.second]) {
-            continue;
-        }
-        visited[current.first][current.second] = true;
+
         searchState.explorationOrder.push_back(current);
         if (current == end) {
-            return {reconstructPath(searchState.cameFrom, end), searchState.explorationOrder};
+            auto path = reconstructPath(searchState.cameFrom, end);
+            return {path, searchState.explorationOrder, calculatePathCost(grid, path)};
         }
 
-        // backtrack in reverse order to maintain the original order of exploration
         for (int i = DIRECTIONS.size() - 1; i >= 0; --i) {
             const Position& direction = DIRECTIONS[i];
             int nr = current.first + direction.first;
             int nc = current.second + direction.second;
 
             if (isTraversable(grid, nr, nc) && !visited[nr][nc]) {
+                visited[nr][nc] = true;
                 searchState.cameFrom[nr][nc] = current;
                 st.push({nr, nc});
             }
@@ -170,10 +170,10 @@ SearchResult aStarSearch(const Grid& grid, Position start, Position end) {
         searchState.explorationOrder.push_back(current);
         
         if (current == end) {
-            return {reconstructPath(searchState.cameFrom, end), searchState.explorationOrder};
+            return {reconstructPath(searchState.cameFrom, end), searchState.explorationOrder, gCost[end.first][end.second]};
         }
         
-        for (int i = 0; i < 4; ++i) {
+        for (int i = 0; i < DIRECTIONS.size(); ++i) {
             int nr = current.first + DIRECTIONS[i].first;
             int nc = current.second + DIRECTIONS[i].second;
 
@@ -194,7 +194,7 @@ SearchResult aStarSearch(const Grid& grid, Position start, Position end) {
         }
     }
 
-    return {{}, searchState.explorationOrder}; // no path found
+    return {{}, searchState.explorationOrder, 0}; // no path found
 }
 
 // BFS minimizes the number of steps, whereas Dijkstra minimizes the total movement cost.
@@ -223,10 +223,10 @@ SearchResult Dijkstra(const Grid& grid, Position start, Position end) {
         searchState.explorationOrder.push_back(current);
         
         if (current == end) {
-            return {reconstructPath(searchState.cameFrom, end), searchState.explorationOrder};
+            return {reconstructPath(searchState.cameFrom, end), searchState.explorationOrder, gCost[end.first][end.second]};
         }
         
-        for (int i = 0; i < 4; ++i) {
+        for (int i = 0; i < DIRECTIONS.size(); ++i) {
             int nr = current.first + DIRECTIONS[i].first;
             int nc = current.second + DIRECTIONS[i].second;
 
@@ -245,7 +245,16 @@ SearchResult Dijkstra(const Grid& grid, Position start, Position end) {
         }
     }
 
-    return {{}, searchState.explorationOrder}; // no path found
+    return {{}, searchState.explorationOrder, 0}; // no path found
+}
+
+int calculatePathCost(const Grid& grid, const std::vector<Position>& path) {
+    int totalCost = 0;
+    for (size_t i = 1; i < path.size(); ++i) {
+        const Position& pos = path[i];
+        totalCost += getMovementCost(grid[pos.first][pos.second]);
+    }
+    return totalCost;
 }
 
 SearchResult runSearch(const Grid& grid, Position start, Position end, Algorithm algo) {
@@ -265,9 +274,6 @@ SearchResult runSearch(const Grid& grid, Position start, Position end, Algorithm
             break;
         default:               
             break;
-    }
-    for (const Position& pos : result.path) {
-        result.totalCost += getMovementCost(grid[pos.first][pos.second]);
     }
     return result;
 }

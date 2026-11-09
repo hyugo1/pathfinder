@@ -44,4 +44,5 @@ int manhattanDistance(const Position& current, const Position& goal);
 SearchResult aStarSearch(const Grid& grid, Position start, Position end);
 SearchResult Dijkstra(const Grid& grid, Position start, Position end);
 SearchResult runSearch(const Grid& grid, Position start, Position end, Algorithm algo);
+int calculatePathCost(const Grid& grid, const std::vector<Position>& path);
 void clearSearchResult(SearchResult& result);
