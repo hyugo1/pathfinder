@@ -30,7 +30,7 @@ add_executable(main
     src/console.cpp
     src/terminal.cpp
     src/generator.cpp
-    src/generator.cpp
+    src/ui.cpp
 )
 
 # 2. Link against the modern targets using PRIVATE
