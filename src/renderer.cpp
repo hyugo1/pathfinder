@@ -5,6 +5,7 @@
 #include "console.hpp"
 #include "renderer.hpp"
 #include "generator.hpp"
+#include "ui.hpp"
 #include <SFML/Graphics.hpp>
 #include <chrono>
 #include <iostream>
@@ -205,6 +206,7 @@ void runGuiMode(AppState& appState, sf::RenderWindow& window, bool threadedMode)
     
     AnimationState animationState;
     SearchWorker worker;
+    UI ui;
 
     while (window.isOpen()) {
         // --- EVENT ---
@@ -214,6 +216,7 @@ void runGuiMode(AppState& appState, sf::RenderWindow& window, bool threadedMode)
         window.clear(sf::Color::White);
 
         renderGUI(window, appState, animationState);
+        ui.draw(window);
 
         window.display();
     }
