@@ -9,34 +9,26 @@
 #include <array>
 
 UI::UI() {
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, 10.f}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "Clear", UiAction::Clear);
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, 60.f}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "Generate", UiAction::Generate);
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, 110.f}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "DFS", UiAction::SelectDFS);
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, 160.f}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "BFS", UiAction::SelectBFS);
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, 210.f}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "A*", UiAction::SelectAStar);
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, 260.f}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "Dijkstra", UiAction::SelectDijkstra);
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, 310.f}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "Delay", UiAction::ToggleDelay);
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, 360.f}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "Seed Lock", UiAction::ToggleSeedLock);
+    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, PANEL_SPACE}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "Clear", UiAction::Clear, sf::Color(240, 250, 130));
+    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, PANEL_SPACE + BUTTON_SPACE}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "Generate", UiAction::Generate, sf::Color(235, 91,  91));
+    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, PANEL_SPACE + 2 * BUTTON_SPACE}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "DFS", UiAction::SelectDFS, sf::Color(86,  240, 114));
+    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, PANEL_SPACE + 3 * BUTTON_SPACE}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "BFS", UiAction::SelectBFS, sf::Color(86,  240, 114));
+    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, PANEL_SPACE + 4 * BUTTON_SPACE}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "A*", UiAction::SelectAStar, sf::Color(86,  240, 114));
+    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, PANEL_SPACE + 5 * BUTTON_SPACE}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "Dijkstra", UiAction::SelectDijkstra, sf::Color(86,  240, 114));
+    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, PANEL_SPACE + 6 * BUTTON_SPACE}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "Delay", UiAction::ToggleDelay, sf::Color(240, 86,  230));
+    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, PANEL_SPACE + 7 * BUTTON_SPACE}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "Seed Lock", UiAction::ToggleSeedLock, sf::Color(240, 86,  230));
 
 
     if (!font.openFromFile("assets/ChrustyRock.ttf")) {
-        throw std::runtime_error("Failed to load specific font");
+        std::cout << "Failed to load specific font, using default font.\n";
     }
 }
 
 void UI::draw(sf::RenderWindow& window) {
-    static const std::array<UiAction, 9> actions = {UiAction::None, UiAction::Generate, UiAction::Clear, UiAction::SelectDFS, UiAction::SelectBFS, UiAction::SelectAStar, UiAction::SelectDijkstra, UiAction::ToggleDelay, UiAction::ToggleSeedLock};
-
     for (const Button& b : buttonList) {
         sf::RectangleShape box(b.rect.size);
         box.setPosition(b.rect.position);
-
-        for (int i = 0; i < actions.size(); ++i) {
-            if (b.action == actions[i]) {
-                box.setFillColor(buttonColors[i]);
-                break;
-            }
-        }
+        box.setFillColor(b.color);
 
         sf::Text label(font, b.text, 15); 
         label.setFillColor(sf::Color::Black);

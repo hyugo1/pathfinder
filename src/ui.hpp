@@ -14,6 +14,7 @@ constexpr int PANEL_SPACE = 10;
 
 constexpr double BUTTON_WIDTH = 120.0f;
 constexpr double BUTTON_HEIGHT = 40.0f;
+constexpr double BUTTON_SPACE = 50.0f;
 
 enum class UiAction {
     None,
@@ -24,7 +25,7 @@ enum class UiAction {
     SelectAStar,
     SelectDijkstra,
     ToggleDelay,
-    ToggleSeedLock
+    ToggleSeedLock,
 };
 
 class UI {
@@ -33,23 +34,12 @@ class UI {
             sf::FloatRect rect;
             std::string text;
             UiAction action;
+            sf::Color color;
 
-            Button (sf::FloatRect r, std::string t, UiAction a) : rect(r), text(t), action(a) {}
+            Button (sf::FloatRect r, std::string t, UiAction a, sf::Color c) : rect(r), text(t), action(a), color(c) {}
         };
 
         std::vector<Button> buttonList;
-
-        std::vector<sf::Color> buttonColors = {
-            sf::Color(200, 200, 200), // None
-            sf::Color(240, 250, 130), // Clear
-            sf::Color(235, 91,  91),  // Generate
-            sf::Color(86,  240, 114), // DFS
-            sf::Color(86,  240, 114), // BFS
-            sf::Color(86,  240, 114), // A*
-            sf::Color(86,  240, 114), // Dijkstra
-            sf::Color(240, 86,  230), // Toggle Delay
-            sf::Color(240, 86,  230)  // Toggle Seed Lock
-        };
 
         //labels need an sf::Font and sf::Text
         sf::Font font;
