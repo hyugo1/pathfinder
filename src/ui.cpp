@@ -7,17 +7,23 @@
 #include <random>
 #include <sstream>
 #include <array>
+#include <stdexcept>
 
 UI::UI() {
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, PANEL_SPACE}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "Clear", UiAction::Clear, sf::Color(240, 250, 130));
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, PANEL_SPACE + BUTTON_SPACE}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "Generate", UiAction::Generate, sf::Color(235, 91,  91));
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, PANEL_SPACE + 2 * BUTTON_SPACE}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "DFS", UiAction::SelectDFS, sf::Color(86,  240, 114));
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, PANEL_SPACE + 3 * BUTTON_SPACE}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "BFS", UiAction::SelectBFS, sf::Color(86,  240, 114));
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, PANEL_SPACE + 4 * BUTTON_SPACE}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "A*", UiAction::SelectAStar, sf::Color(86,  240, 114));
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, PANEL_SPACE + 5 * BUTTON_SPACE}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "Dijkstra", UiAction::SelectDijkstra, sf::Color(86,  240, 114));
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, PANEL_SPACE + 6 * BUTTON_SPACE}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "Delay", UiAction::ToggleDelay, sf::Color(240, 86,  230));
-    buttonList.emplace_back(sf::FloatRect({COLS * CELL_SIZE + PANEL_SPACE, PANEL_SPACE + 7 * BUTTON_SPACE}, {BUTTON_WIDTH, BUTTON_HEIGHT}), "Seed Lock", UiAction::ToggleSeedLock, sf::Color(240, 86,  230));
+    const float x = COLS * CELL_SIZE + PANEL_SPACE;
+    auto addButton = [&](int row, const std::string& text, UiAction action, sf::Color color) {
+        buttonList.emplace_back(
+            sf::FloatRect({x, PANEL_SPACE + row * BUTTON_SPACE}, {BUTTON_WIDTH, BUTTON_HEIGHT}), text, action, color);
+    };
 
+    addButton(0, "Clear", UiAction::Clear, sf::Color(240, 250, 130));
+    addButton(1, "Generate", UiAction::Generate, sf::Color(235, 91, 91));
+    addButton(2, "DFS", UiAction::SelectDFS, sf::Color(86, 40, 114));
+    addButton(3, "BFS", UiAction::SelectBFS, sf::Color(8, 240, 114));
+    addButton(4, "A Star", UiAction::SelectAStar, sf::Color(86, 240, 114));
+    addButton(5, "Dijkstra", UiAction::SelectDijkstra, sf::Color(86, 240, 114));
+    addButton(6, "Delay", UiAction::ToggleDelay, sf::Color(240, 86, 230));
+    addButton(7, "Seed Lock", UiAction::ToggleSeedLock, sf::Color(240, 86,  230));
 
     if (!font.openFromFile("assets/ChrustyRock.ttf")) {
         std::cout << "Custom font failed. Using Roboto instead.\n";

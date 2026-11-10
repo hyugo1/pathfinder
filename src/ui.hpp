@@ -8,13 +8,12 @@
 #include "appstate.hpp"
 
 constexpr int PANEL_WIDTH = 140;
-constexpr int PANEL_HEIGHT = 100;
 
 constexpr int PANEL_SPACE = 10;
 
-constexpr double BUTTON_WIDTH = 120.0f;
-constexpr double BUTTON_HEIGHT = 40.0f;
-constexpr double BUTTON_SPACE = 50.0f;
+constexpr float BUTTON_WIDTH = 120.0f;
+constexpr float BUTTON_HEIGHT = 40.0f;
+constexpr float BUTTON_SPACE = 50.0f;
 
 enum class UiAction {
     None,
