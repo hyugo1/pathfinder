@@ -20,7 +20,10 @@ UI::UI() {
 
 
     if (!font.openFromFile("assets/ChrustyRock.ttf")) {
-        std::cout << "Failed to load specific font, using default font.\n";
+        std::cout << "Custom font failed. Using Roboto instead.\n";
+        if (!font.openFromFile("assets/Roboto-Regular.ttf")) {
+            throw std::runtime_error("Failed to load both fonts!");
+        }
     }
 }
 
