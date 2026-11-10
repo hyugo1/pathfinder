@@ -11,7 +11,7 @@
 
 UI::UI() {
     const float x = COLS * CELL_SIZE + PANEL_SPACE;
-    auto addButton = [&](int row, const std::string& text, UiAction action, sf::Color color) {
+    auto addButton = [&](int row, std::string text, UiAction action, sf::Color color) {
         buttonList.emplace_back(
             sf::FloatRect({x, PANEL_SPACE + row * BUTTON_SPACE}, {BUTTON_WIDTH, BUTTON_HEIGHT}), text, action, color);
     };
@@ -22,8 +22,8 @@ UI::UI() {
     addButton(3, "BFS", UiAction::SelectBFS, sf::Color(86, 240, 114));
     addButton(4, "A Star", UiAction::SelectAStar, sf::Color(86, 240, 114));
     addButton(5, "Dijkstra", UiAction::SelectDijkstra, sf::Color(86, 240, 114));
-    addButton(6, "Delay", UiAction::ToggleDelay, sf::Color(240, 86, 230));
-    addButton(7, "Seed Lock", UiAction::ToggleSeedLock, sf::Color(240, 86,  230));
+    addButton(6, "Delay Off", UiAction::ToggleDelay, sf::Color(240, 86, 230));
+    // addButton(7, "Seed Lock", UiAction::ToggleSeedLock, sf::Color(240, 86,  230));
 
     if (!font.openFromFile("assets/ChrustyRock.ttf")) {
         std::cout << "Custom font failed. Using Roboto instead.\n";
@@ -38,6 +38,7 @@ void UI::draw(sf::RenderWindow& window) {
         sf::RectangleShape box(b.rect.size);
         box.setPosition(b.rect.position);
         sf::Color color = b.color;
+        std::string labelText = b.text;
         sf::Vector2i mousePos = sf::Mouse::getPosition(window);
         
         if (b.rect.contains(static_cast<sf::Vector2f>(mousePos))) {
@@ -46,9 +47,17 @@ void UI::draw(sf::RenderWindow& window) {
             color.g = std::min(255, color.g + 40);
             color.b = std::min(255, color.b + 40);
         }
+        
+        if (THREAD_SLEEP_SECONDS == 2 && b.action == UiAction::ToggleDelay) {
+            color.r = 152;
+            color.g = 86;
+            color.b = 230;
+            labelText = "Delay On";
+        }
+
         box.setFillColor(color);
         
-        sf::Text label(font, b.text, 15); 
+        sf::Text label(font, labelText, 15); 
         label.setFillColor(sf::Color::Black);
         
         // Center the label inside b.rect
