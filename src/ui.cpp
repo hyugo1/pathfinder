@@ -1,9 +1,12 @@
 #include "ui.hpp"
 #include "searchworker.hpp"
 #include "grid.hpp"
+#include "console.hpp"
+#include "algorithms.hpp"
  
 #include <iomanip>
 #include <iostream>
+#include <algorithm>
 #include <random>
 #include <sstream>
 #include <array>
@@ -25,15 +28,23 @@ UI::UI() {
     addButton(6, "Delay Off", UiAction::ToggleDelay, sf::Color(240, 86, 230));
     // addButton(7, "Seed Lock", UiAction::ToggleSeedLock, sf::Color(240, 86,  230));
 
-    if (!font.openFromFile("assets/ChrustyRock.ttf")) {
-        std::cout << "Custom font failed. Using Roboto instead.\n";
-        if (!font.openFromFile("assets/Roboto-Regular.ttf")) {
-            throw std::runtime_error("Failed to load both fonts!");
-        }
+
+    auto addTextBox = [&](int row, std::string text, StatType s, sf::Color color) {
+        textboxList.emplace_back(
+            sf::FloatRect({x, PANEL_SPACE + row * TEXTBOX_SPACE}, {TEXTBOX_WIDTH, TEXTBOX_HEIGHT}), text, s, color);
+    };
+
+    addTextBox(10, "Algorithm: ", StatType::AlgorithmName, sf::Color(180, 208, 242));
+    addTextBox(11, "Nodes Explored: ", StatType::TotalNodesExplored, sf::Color(180, 208, 242));
+    addTextBox(12, "Total Cost: ", StatType::TotalCost, sf::Color(180, 208, 242));
+    addTextBox(13, "Path Length: ", StatType::PathLength, sf::Color(180, 208, 242));
+
+    if (!font.openFromFile("assets/OpenSans-Regular.ttf")) {
+        throw std::runtime_error("Failed to load both fonts!");
     }
 }
 
-void UI::draw(sf::RenderWindow& window) {
+void UI::draw(sf::RenderWindow& window, const AppState& appState) {
     for (const Button& b : buttonList) {
         sf::RectangleShape box(b.rect.size);
         box.setPosition(b.rect.position);
@@ -68,6 +79,40 @@ void UI::draw(sf::RenderWindow& window) {
         window.draw(box);
         window.draw(label);
     }
+
+    for (const TextBox& t : textboxList) {
+        sf::RectangleShape box(t.rect.size);
+        box.setPosition(t.rect.position);
+        sf::Color color = t.color;
+        std::string labelText = t.text;
+        box.setFillColor(color);
+        
+        switch(t.statType) {
+            case StatType::AlgorithmName:
+                labelText = "Algorithm: " + algorithmName(appState.chosenAlgo);
+                break;
+            case StatType::TotalNodesExplored:
+                labelText = "Nodes Explored: " + std::to_string(appState.result.explorationOrder.size());
+                break;
+            case StatType::TotalCost:
+                labelText = "Total Cost: " + std::to_string(appState.result.totalCost);
+                break;
+            case StatType::PathLength:
+                labelText = "Path Length: " + std::to_string(appState.result.path.size());
+                break;
+        }
+
+        sf::Text label(font, labelText, 15); 
+        label.setFillColor(sf::Color::Black);
+
+        // Center the label inside b.rect
+        sf::FloatRect bounds = label.getLocalBounds();
+        label.setOrigin(bounds.position + bounds.size / 2.f);
+        label.setPosition(t.rect.getCenter());
+
+        window.draw(box);
+        window.draw(label);
+    }   
 }
 
 UiAction UI::handleClick(sf::Vector2i pos) {

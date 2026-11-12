@@ -220,13 +220,13 @@ void applyUiAction(AppState& appState, AnimationState& animationState, UiAction 
             appState.statsRequested = true;
             break;
         case UiAction::ToggleDelay:
-                if (THREAD_SLEEP_SECONDS == 2) {
-                    std::cout << "Removing delay.\n";
-                    THREAD_SLEEP_SECONDS = 0;
-                } else {
-                    std::cout << "Adding delay of 2 second to make threading more visible.\n";
-                    THREAD_SLEEP_SECONDS = 2;
-                }
+            if (THREAD_SLEEP_SECONDS == 2) {
+                std::cout << "Removing delay.\n";
+                THREAD_SLEEP_SECONDS = 0;
+            } else {
+                std::cout << "Adding delay of 2 second to make threading more visible.\n";
+                THREAD_SLEEP_SECONDS = 2;
+            }
             break;
         case UiAction::ToggleSeedLock:
             break;
@@ -240,7 +240,6 @@ void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationStat
         if (const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>()) {
             if (mousePressed->button == sf::Mouse::Button::Left) {
                 UiAction action = ui.handleClick(mousePressed->position);
-                std::cout << "action id: " << static_cast<int>(action) << "\n";
                 applyUiAction(appState, animationState, action);
             }
         }
@@ -292,7 +291,7 @@ void runGuiMode(AppState& appState, sf::RenderWindow& window, bool threadedMode)
         window.clear(sf::Color::White);
 
         renderGUI(window, appState, animationState);
-        ui.draw(window);
+        ui.draw(window, appState);
 
         window.display();
     }
