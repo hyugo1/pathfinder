@@ -44,7 +44,7 @@ UI::UI() {
     }
 }
 
-void UI::draw(sf::RenderWindow& window, const AppState& appState) {
+void UI::drawButtons(sf::RenderWindow& window, const AppState& appState) {
     for (const Button& b : buttonList) {
         sf::RectangleShape box(b.rect.size);
         box.setPosition(b.rect.position);
@@ -79,7 +79,9 @@ void UI::draw(sf::RenderWindow& window, const AppState& appState) {
         window.draw(box);
         window.draw(label);
     }
+}
 
+void UI::drawTextBoxes(sf::RenderWindow& window, const AppState& appState) {
     for (const TextBox& t : textboxList) {
         sf::RectangleShape box(t.rect.size);
         box.setPosition(t.rect.position);
@@ -113,6 +115,12 @@ void UI::draw(sf::RenderWindow& window, const AppState& appState) {
         window.draw(box);
         window.draw(label);
     }   
+}
+
+
+void UI::draw(sf::RenderWindow& window, const AppState& appState) {
+    drawButtons(window, appState);
+    drawTextBoxes(window, appState);
 }
 
 UiAction UI::handleClick(sf::Vector2i pos) {

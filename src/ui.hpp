@@ -67,6 +67,8 @@ class UI {
 
     public:
         UI();
+        void drawButtons(sf::RenderWindow& window, const AppState& appState);
+        void drawTextBoxes(sf::RenderWindow& window, const AppState& appState);
         void draw(sf::RenderWindow& window, const AppState& appState);
         UiAction handleClick(sf::Vector2i pos);
 };
