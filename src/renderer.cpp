@@ -139,9 +139,7 @@ void handleTextInputEvent(AppState& appState, AnimationState& animationState, co
         } else if (textEntered->unicode == 10) {
             //Enter
             ui.handleEnter();
-        }
-
-        if (textEntered->unicode < 128) {
+        } else if (textEntered->unicode < 128) {
             ui.handleTyping(textEntered->unicode);
         }
     }
