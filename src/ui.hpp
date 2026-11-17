@@ -38,6 +38,14 @@ enum class StatType {
     PathLength
 };
 
+enum class InputLabel {
+    None,
+    Seed,
+    WallDensity,
+    MudBlobDensity,
+    WaterBlobDensity,
+};
+
 class UI {
     private: 
         struct Button {
@@ -65,10 +73,31 @@ class UI {
 
         std::vector<TextBox> textboxList;
 
+
+        struct InputBox {
+            sf::FloatRect rect;
+            std::string placeholder;
+            std::string inputtext;
+            InputLabel label;
+            sf::Color color;
+
+            InputBox(sf::FloatRect rect, std::string placeholder, std::string text, InputLabel label, sf::Color color)
+                : rect(rect), placeholder(placeholder), inputtext(text), label(label), color(color) {}
+        };
+
+        std::vector<InputBox> inputboxList;
+
+        InputLabel focusedInput = InputLabel::None;
+
     public:
         UI();
         void drawButtons(sf::RenderWindow& window, const AppState& appState);
         void drawTextBoxes(sf::RenderWindow& window, const AppState& appState);
+        void drawInputBoxes(sf::RenderWindow& window, const AppState& appState);
         void draw(sf::RenderWindow& window, const AppState& appState);
         UiAction handleClick(sf::Vector2i pos);
+        InputLabel handleInputBoxClick(sf::Vector2i pos);
+        void handleTyping(char32_t c);
+        void handleDelete();
+        void handleEnter();
 };

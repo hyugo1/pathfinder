@@ -89,7 +89,7 @@ void handleKeyboardEvent(AppState& appState, AnimationState& animationState, con
             case sf::Keyboard::Key::LShift:
                 break;
             default:
-                std::cout << "Unknown key pressed.\n";
+                // std::cout << "Unknown key pressed.\n";
                 break;
         }
     }
@@ -122,6 +122,27 @@ void handleMouseEvent(AppState& appState, AnimationState& animationState, const 
                     std::cout << "Unknown mouse button pressed.\n";
                     break;
             }
+        }
+    }
+}
+
+
+void handleTextInputEvent(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event, UI& ui) {
+    if (!event.has_value()) {
+        return;
+    }
+
+     if (const auto* textEntered = event->getIf<sf::Event::TextEntered>()) {
+        if (textEntered->unicode == 8) {
+            //backspace
+            ui.handleDelete();
+        } else if (textEntered->unicode == 10) {
+            //Enter
+            ui.handleEnter();
+        }
+
+        if (textEntered->unicode < 128) {
+            ui.handleTyping(textEntered->unicode);
         }
     }
 }
@@ -241,14 +262,15 @@ void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationStat
             if (mousePressed->button == sf::Mouse::Button::Left) {
                 UiAction action = ui.handleClick(mousePressed->position);
                 applyUiAction(appState, animationState, action);
+                InputLabel label = ui.handleInputBoxClick(mousePressed->position);
             }
         }
         if (event->is<sf::Event::Closed>()) {
             window.close();
         }
-
         handleKeyboardEvent(appState, animationState, event, window);
         handleMouseEvent(appState, animationState, event);
+        handleTextInputEvent(appState, animationState, event, ui);
     }
 
     processGridChanges(appState, animationState, threadedMode, worker);
