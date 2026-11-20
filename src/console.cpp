@@ -3,6 +3,7 @@
 #include "console.hpp"
 #include "grid.hpp"
 #include "algorithms.hpp"
+#include "appstate.hpp"
 #include <string>
 #include <optional>
 #include <random>
@@ -203,27 +204,27 @@ std::optional<unsigned int> askForSeed() {
 std::optional<double> askForWallDensity() {
     std::string input;
     while (true) {
-        std::cout << "Enter wall density(probability that a cell will be a wall) (0.0 to 1.0): ";
+        std::cout << "Enter wall density(probability that a cell will be a wall) (0.0 to 100.0): ";
         if (!std::getline(std::cin, input)) {
             return std::nullopt;
         }
         if (input.empty()) {
-            double wallDensity = 0.3;// Default wall density
-            std::cout << "Using default wall density: " << wallDensity << '\n';
-            return wallDensity;
+            double defaultWallDensity = GenerationSettings{}.wallDensity;
+            std::cout << "Using default wall density: " << defaultWallDensity << '\n';
+            return defaultWallDensity;
         }
 
         try {
             std::size_t pos;//size of the string
             double wallDensity = std::stod(input, &pos);
-            if (pos != input.size() || wallDensity < 0.0 || wallDensity > 1.0 || !std::isfinite(wallDensity)) {
+            if (pos != input.size() || wallDensity < 0.0 || wallDensity > 100.0 || !std::isfinite(wallDensity)) {
                 throw std::invalid_argument("Invalid wall density");
             }
             std::cout << "Using density: " << wallDensity << '\n';
             return wallDensity;
 
         } catch (const std::exception&) {
-            std::cerr << "Invalid input. Please enter a number between 0.0 and 1.0.\n";
+            std::cerr << "Invalid input. Please enter a number between 0.0 and 100/.0.\n";
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         }
@@ -238,9 +239,9 @@ std::optional<double> askForMudCount() {
             return std::nullopt;
         }
         if (input.empty()) {
-            double mudCount = 10; // Default mud count
-            std::cout << "Using default mud count: " << mudCount << '\n';
-            return mudCount;
+            double defaultMudCount = GenerationSettings{}.mudCount;
+            std::cout << "Using default mud count: " << defaultMudCount << '\n';
+            return defaultMudCount;
         }
 
         try {
@@ -268,9 +269,9 @@ std::optional<double> askForWaterCount() {
             return std::nullopt;
         }
         if (input.empty()) {
-            double waterCount = 10; // Default water count
-            std::cout << "Using default water count: " << waterCount << '\n';
-            return waterCount;
+            double defaultWaterCount = GenerationSettings{}.waterCount;
+            std::cout << "Using default water count: " << defaultWaterCount << '\n';
+            return defaultWaterCount;
         }
 
         try {
