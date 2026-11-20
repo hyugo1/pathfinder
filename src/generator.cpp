@@ -12,6 +12,10 @@ Grid generateRandomGrid(int rows, int cols, double wallDensity, double mudCount,
     std::mt19937 rng(seed);
     std::uniform_real_distribution<double> dist(0.0, 1.0);// squash the long range into 0 to 1.
 
+    std::cout << "using Wall Density: " << wallDensity << '\n';
+    std::cout << "using mudCount: " << mudCount << '\n';
+    std::cout << "using waterCount: " << waterCount << '\n';
+    std::cout << "using seed: " << seed << '\n';
 
     Grid grid(rows, std::vector<CellType>(cols, CellType::Open));//empty board
     std::vector<Position> openCells;

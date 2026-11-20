@@ -99,5 +99,6 @@ class UI {
         InputLabel handleInputBoxClick(sf::Vector2i pos);
         void handleTyping(char32_t c);
         void handleDelete();
-        void handleEnter();
+        void handleEnter(GenerationSettings& generationState);
+        bool validateInput(InputLabel inputlabel, const std::string& inputstring);
 };

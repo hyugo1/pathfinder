@@ -10,7 +10,10 @@
 #include <random>
 #include <sstream>
 #include <array>
+#include <string>
+#include <limits>
 #include <stdexcept>
+#include <cmath>
 
 UI::UI() {
     const float x = COLS * CELL_SIZE + PANEL_SPACE;
@@ -44,10 +47,10 @@ UI::UI() {
             sf::FloatRect({x, PANEL_SPACE + row * TEXTBOX_SPACE}, {TEXTBOX_WIDTH, TEXTBOX_HEIGHT}), placeholder, inputtext, i, color);
     };
 
-    addInputBox(16, "Seed: ", "0", InputLabel::Seed, sf::Color(180, 208, 242));
-    addInputBox(17, "Wall Density: ", "0", InputLabel::WallDensity, sf::Color(180, 208, 242));
-    addInputBox(18, "Mud Blob Density: ", "0", InputLabel::MudBlobDensity, sf::Color(180, 208, 242));
-    addInputBox(19, "Water Blob Density: ", "0", InputLabel::WaterBlobDensity, sf::Color(180, 208, 242));
+    addInputBox(16, "Seed: ", "", InputLabel::Seed, sf::Color(180, 208, 242));
+    addInputBox(17, "Wall Density: ", "", InputLabel::WallDensity, sf::Color(180, 208, 242));
+    addInputBox(18, "Mud Blob Density: ", "", InputLabel::MudBlobDensity, sf::Color(180, 208, 242));
+    addInputBox(19, "Water Blob Density: ", "", InputLabel::WaterBlobDensity, sf::Color(180, 208, 242));
 
     if (!font.openFromFile("assets/OpenSans-Regular.ttf")) {
         throw std::runtime_error("Failed to load both fonts!");
@@ -235,11 +238,130 @@ void UI::handleDelete() {
     }
 }
 
+std::ostream& operator<<(std::ostream& os, const GenerationSettings& settings) {
+    os << "Seed: " << settings.seed.value_or(0) << '\n'
+       << "Wall density: " << settings.wallDensity.value_or(0.0) << '\n'
+       << "Water Count: " << settings.waterCount.value_or(0.0) << '\n'
+       << "Mud count: " << settings.mudCount.value_or(0.0);
+    return os;
+}
 
-void UI::handleEnter() {
+void UI::handleEnter(GenerationSettings& generationState) {
     for (InputBox& i : inputboxList) {
         if (focusedInput == i.label) {
-            focusedInput = InputLabel::None;
+            if (validateInput(focusedInput, i.inputtext)) {
+                switch(focusedInput) {
+                    case InputLabel::Seed:
+                        generationState.seed = static_cast<unsigned int>(std::stoul(i.inputtext));
+                        break;
+
+                    case InputLabel::WallDensity:
+                        generationState.wallDensity = std::stod(i.inputtext);
+                        break;
+
+                    case InputLabel::MudBlobDensity:
+                        generationState.mudCount = std::stod(i.inputtext);
+                        break;
+
+                    case InputLabel::WaterBlobDensity:
+                        generationState.waterCount = std::stod(i.inputtext);
+                        break;
+                    
+                    case InputLabel::None:
+                        // std::cout << "its none\n";
+                        break;
+                    default:
+                        break;
+                        
+                }
+            } else {
+                std::cout << "Please correct your input.\n";
+            }
         }
     }
+}
+
+bool UI::validateInput(InputLabel inputlabel, const std::string& inputstring) {
+    switch (inputlabel) {
+        case (InputLabel::WallDensity): {
+            try {
+                std::size_t pos;
+                double input = std::stod(inputstring, &pos);
+                if (pos != inputstring.size() || input < 0.0 || input > 1.0 || !std::isfinite(input)) {
+                    throw std::invalid_argument("Invalid density");
+                }
+                std::cout << "Using " << InputLabel::WallDensity << ": " << input << '\n';
+                return true;
+
+            } catch (const std::invalid_argument& e) {
+                std::cerr << "Invalid input: " << e.what() << ". Please enter a number between 0.0 and 1.0.\n";
+                return false;
+                
+            } catch (const std::out_of_range& e) {
+                std::cerr << "Density value is out of range.\n";
+                return false;
+            }
+        }
+
+        case (InputLabel::Seed): {
+            try {
+                if (inputstring.find_first_not_of("0123456789") != std::string::npos) {
+                    throw std::invalid_argument("Seed must contain digits only");
+                }
+
+                std::size_t pos = 0;
+                unsigned long input = std::stoul(inputstring, &pos);
+
+                if (pos != inputstring.size()) {
+                    throw std::invalid_argument("Invalid seed");
+                }
+
+                if (input > std::numeric_limits<unsigned int>::max()) {
+                    throw std::out_of_range("Seed exceeds maximum value");
+                }
+
+                std::cout << "Using " << InputLabel::Seed << ": "
+                        << input << '\n';
+                return true;
+
+            } catch (const std::invalid_argument& e) {
+                std::cerr << "Invalid input: " << e.what() << ". Please enter a number between 0 and 4294967295.\n";
+                return false;
+                
+            } catch (const std::out_of_range& e) {
+                std::cerr << "Seed value is out of range.\n";
+                return false;
+            }
+        }
+
+        case InputLabel::WaterBlobDensity:
+        case InputLabel::MudBlobDensity: 
+            try {
+                std::size_t pos;
+                if (inputstring.find('-') != std::string::npos) {
+                    throw std::invalid_argument("Negative numbers not allowed");
+                }
+                
+                double input = std::stod(inputstring, &pos);
+                if (pos != inputstring.size() || input < 0.0 || input > 100.0 || !std::isfinite(input)) {
+                    throw std::invalid_argument("Invalid density");
+                }
+                std::cout << "Using " << InputLabel::WaterBlobDensity << ": " << input << '\n';
+                std::cout << "Using " << InputLabel::MudBlobDensity << ": " << input << '\n';
+                return true;
+
+            } catch (const std::invalid_argument& e) {
+                std::cerr << "Invalid input: " << e.what() << ". Please enter a number between 0 and 100.\n";
+                return false;
+                
+            } catch (const std::out_of_range& e) {
+                std::cerr << e.what() << "Density value is out of range.\n";
+                return false;
+            }
+        case InputLabel::None:
+            std::cout << "None selected";
+            return false;
+    }
+
+    return true;
 }
