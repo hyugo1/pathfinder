@@ -276,13 +276,9 @@ void UI::handleEnter(GenerationSettings& generationState) {
 
 std::optional<double> UI::parseDouble(const std::string& input, double min, double max) {
     try {
-        if (input.empty()) {
-            throw std::invalid_argument("Input cannot be empty");
-        }
-
         std::size_t pos = 0;
         double value = std::stod(input, &pos);
-
+    
         if (pos != input.size() || !std::isfinite(value)) {
             throw std::invalid_argument("Invalid number");
         }
@@ -314,14 +310,9 @@ unsigned int UI::generateRandomSeed() {
 
 std::optional<unsigned int> UI::parseSeed(const std::string& input) {
     try {
-        if (input.empty()) {
-            return generateRandomSeed();
-        }
-        
         if (input.find_first_not_of("0123456789") != std::string::npos) {
             throw std::invalid_argument("Seed must contain digits only");
         }
-
         std::size_t pos = 0;
         unsigned long value = std::stoul(input, &pos);
 
@@ -343,6 +334,24 @@ std::optional<unsigned int> UI::parseSeed(const std::string& input) {
 }
 
 std::optional<ParsedInput> UI::parseInput(InputLabel inputlabel, const std::string& inputstring) {
+    if (inputstring.empty()) {
+        switch (inputlabel) {
+            case InputLabel::Seed:
+                return ParsedInput{generateRandomSeed()};
+
+            case InputLabel::WallDensity:
+                return ParsedInput{GenerationSettings{}.wallDensity};
+
+            case InputLabel::WaterBlobDensity:
+                return ParsedInput{GenerationSettings{}.waterCount};
+
+            case InputLabel::MudBlobDensity:
+                return ParsedInput{GenerationSettings{}.mudCount};
+
+            case InputLabel::None:
+                return std::nullopt;
+        }
+    }
     switch (inputlabel) {
         case (InputLabel::Seed): {
             auto value = parseSeed(inputstring);
