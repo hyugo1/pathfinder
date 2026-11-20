@@ -21,7 +21,7 @@ Grid generateRandomGrid(int rows, int cols, double wallDensity, double mudCount,
     std::vector<Position> openCells;
     for (int r = 0; r < rows; ++r) {
         for (int c = 0; c < cols; ++c) {
-            if (dist(rng) < wallDensity) {
+            if (dist(rng) < (wallDensity / 100)) { // convert wallDensity to match dist
                 grid[r][c] = CellType::Wall;
             } else {
                 openCells.emplace_back(r, c);

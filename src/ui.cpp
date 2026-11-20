@@ -350,13 +350,13 @@ std::optional<ParsedInput> UI::parseInput(InputLabel inputlabel, const std::stri
             return ParsedInput{*value};
         }
         case (InputLabel::WallDensity): {
-            auto value = parseDouble(inputstring, 0.0, 1.0);
+            auto value = parseDouble(inputstring, minWallDensityRange, maxWallDensityRange);
             if (!value) return std::nullopt;
             return ParsedInput{*value};
         }
         case InputLabel::WaterBlobDensity:
         case InputLabel::MudBlobDensity: {
-            auto value = parseDouble(inputstring, 0.0, 100.0);
+            auto value = parseDouble(inputstring, minBlobDensityRange, maxBlobDensityRange);
             if (!value) return std::nullopt;
             return ParsedInput{*value};
         }

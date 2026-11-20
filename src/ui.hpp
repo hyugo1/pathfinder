@@ -21,6 +21,12 @@ constexpr float TEXTBOX_WIDTH = 180.0f;
 constexpr float TEXTBOX_HEIGHT = 40.0f;
 constexpr float TEXTBOX_SPACE = 50.0f;
 
+
+const double minWallDensityRange = 0.0;
+const double maxWallDensityRange = 100.0;
+const double minBlobDensityRange = 0.0;
+const double maxBlobDensityRange = 100.0;
+
 enum class UiAction {
     None,
     Generate,
