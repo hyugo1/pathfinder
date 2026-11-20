@@ -93,7 +93,7 @@ class UI {
 
     public:
         UI();
-        void drawButtons(sf::RenderWindow& window, const AppState& appState);
+        void drawButtons(sf::RenderWindow& window);
         void drawTextBoxes(sf::RenderWindow& window, const AppState& appState);
         void drawInputBoxes(sf::RenderWindow& window);
         void draw(sf::RenderWindow& window, const AppState& appState);

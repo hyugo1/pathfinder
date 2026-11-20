@@ -59,7 +59,7 @@ UI::UI() {
     }
 }
 
-void UI::drawButtons(sf::RenderWindow& window, const AppState& appState) {
+void UI::drawButtons(sf::RenderWindow& window) {
     for (const Button& b : buttonList) {
         sf::RectangleShape box(b.rect.size);
         box.setPosition(b.rect.position);
@@ -178,7 +178,7 @@ void UI::drawInputBoxes(sf::RenderWindow& window) {
 }
 
 void UI::draw(sf::RenderWindow& window, const AppState& appState) {
-    drawButtons(window, appState);
+    drawButtons(window);
     drawTextBoxes(window, appState);
     drawInputBoxes(window);
 }
@@ -238,9 +238,9 @@ void UI::handleDelete() {
 
 std::ostream& operator<<(std::ostream& os, const GenerationSettings& settings) {
     os << "Seed: " << settings.seed.value_or(0) << '\n'
-       << "Wall density: " << settings.wallDensity.value_or(0.0) << '\n'
-       << "Water Count: " << settings.waterCount.value_or(0.0) << '\n'
-       << "Mud count: " << settings.mudCount.value_or(0.0);
+       << "Wall density: " << settings.wallDensity << '\n'
+       << "Water Count: " << settings.waterCount << '\n'
+       << "Mud count: " << settings.mudCount;
     return os;
 }
 

@@ -33,12 +33,9 @@ void handleKeyboardEvent(AppState& appState, AnimationState& animationState, Gen
                 }
                 break;
             case sf::Keyboard::Key::G: {
-                if (!generationState.wallDensity) break;
-                if (!generationState.mudCount) break;
-                if (!generationState.waterCount) break;
                 if (!generationState.seed) break;
 
-                appState.grid = generateRandomGrid(ROWS, COLS, *generationState.wallDensity, *generationState.mudCount, *generationState.waterCount, *generationState.seed);
+                appState.grid = generateRandomGrid(ROWS, COLS, generationState.wallDensity, generationState.mudCount, generationState.waterCount, *generationState.seed);
                 auto [start, end] = findStartAndEndPositions(appState.grid);
                 appState.start = start;
                 appState.end = end;
@@ -160,12 +157,9 @@ void applyUiAction(AppState& appState, AnimationState& animationState, Generatio
             clearAll(appState, animationState);
             break;
         case UiAction::Generate: {
-            if (!generationState.wallDensity) break;
-            if (!generationState.mudCount) break;
-            if (!generationState.waterCount) break;
             if (!generationState.seed) break;
 
-            appState.grid = generateRandomGrid(ROWS, COLS, *generationState.wallDensity, *generationState.mudCount, *generationState.waterCount, *generationState.seed);
+            appState.grid = generateRandomGrid(ROWS, COLS, generationState.wallDensity, generationState.mudCount, generationState.waterCount, *generationState.seed);
             auto [start, end] = findStartAndEndPositions(appState.grid);
             appState.start = start;
             appState.end = end;

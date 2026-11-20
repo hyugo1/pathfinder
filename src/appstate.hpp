@@ -33,9 +33,9 @@ struct AnimationState {
 
 struct GenerationSettings {
     std::optional<unsigned int> seed  = 0;
-    std::optional<double> wallDensity = 0.3;
-    std::optional<double> mudCount    = 10.0;
-    std::optional<double> waterCount  = 10.0;
+    double wallDensity = 0.3;
+    double mudCount    = 10.0;
+    double waterCount  = 10.0;
 };
 
 void resetAnimationStates(AnimationState& animationState);
