@@ -14,6 +14,8 @@
 #include <limits>
 #include <stdexcept>
 #include <cmath>
+#include <optional>
+#include <variant>
 
 UI::UI() {
     const float x = COLS * CELL_SIZE + PANEL_SPACE;
@@ -132,7 +134,7 @@ void UI::drawTextBoxes(sf::RenderWindow& window, const AppState& appState) {
 
 
 void UI::drawInputBoxes(sf::RenderWindow& window) {
-for (const InputBox& i : inputboxList) {
+    for (const InputBox& i : inputboxList) {
         sf::RectangleShape box(i.rect.size);
         box.setPosition(i.rect.position);
         sf::Color color = i.color;
@@ -161,7 +163,6 @@ for (const InputBox& i : inputboxList) {
                 placeholder = "ERROR";
                 break;
         }
-
 
         sf::Text label(font, placeholder, 15);
         label.setFillColor(sf::Color::Black);
@@ -245,39 +246,35 @@ std::ostream& operator<<(std::ostream& os, const GenerationSettings& settings) {
 
 void UI::handleEnter(GenerationSettings& generationState) {
     for (InputBox& i : inputboxList) {
-        if (focusedInput == i.label) {
-            if (validateInput(focusedInput, i.inputtext)) {
-                switch(focusedInput) {
-                    case InputLabel::Seed:
-                        generationState.seed = static_cast<unsigned int>(std::stoul(i.inputtext));
-                        break;
+        if (focusedInput != i.label) continue;
+            auto result = parseInput(focusedInput, i.inputtext);
 
-                    case InputLabel::WallDensity:
-                        generationState.wallDensity = std::stod(i.inputtext);
-                        break;
-
-                    case InputLabel::MudBlobDensity:
-                        generationState.mudCount = std::stod(i.inputtext);
-                        break;
-
-                    case InputLabel::WaterBlobDensity:
-                        generationState.waterCount = std::stod(i.inputtext);
-                        break;
-                    
-                    case InputLabel::None:
-                        // std::cout << "its none\n";
-                        break;
-                    default:
-                        break;
-                }
-            } else {
+            if (!result) {
                 std::cout << "Please correct your input.\n";
+                return;
             }
+
+            switch(focusedInput) {
+                case InputLabel::Seed:
+                    generationState.seed = std::get<unsigned int>(*result);
+                    break;
+                case InputLabel::WallDensity:
+                    generationState.wallDensity = std::get<double>(*result);
+                    break;
+                case InputLabel::MudBlobDensity:
+                    generationState.mudCount = std::get<double>(*result);
+                    break;
+                case InputLabel::WaterBlobDensity:
+                    generationState.waterCount = std::get<double>(*result);
+                    break;
+                case InputLabel::None:
+                    return;
+            }
+            return;
         }
-    }
 }
 
-bool UI::validateDouble(const std::string& input, double min, double max) {
+std::optional<double> UI::parseDouble(const std::string& input, double min, double max) {
     try {
         if (input.empty()) {
             throw std::invalid_argument("Input cannot be empty");
@@ -294,21 +291,21 @@ bool UI::validateDouble(const std::string& input, double min, double max) {
             throw std::invalid_argument("Value outside valid range");
         }
 
-        return true;
+        return value;
 
     } catch (const std::invalid_argument& e) {
         std::cerr << "Invalid input: " << e.what()
                   << ". Expected a value between "
                   << min << " and " << max << ".\n";
-        return false;
+        return std::nullopt;
 
     } catch (const std::out_of_range& e) {
         std::cerr << "Input value is out of range.\n";
-        return false;
+        return std::nullopt;
     }
 }
 
-bool UI::validateSeed(const std::string& input) {
+std::optional<unsigned int> UI::parseSeed(const std::string& input) {
     try {
         if (input.empty() ||
             input.find_first_not_of("0123456789") != std::string::npos) {
@@ -323,32 +320,38 @@ bool UI::validateSeed(const std::string& input) {
             throw std::out_of_range("Seed value is out of range");
         }
 
-        return true;
+        return value;
 
     } catch (const std::invalid_argument& e) {
         std::cerr << "Invalid seed: " << e.what() << '\n';
-        return false;
+        return std::nullopt;
 
     } catch (const std::out_of_range& e) {
         std::cerr << "Seed value is out of range.\n";
-        return false;
+        return std::nullopt;
     }
 }
 
-
-bool UI::validateInput(InputLabel inputlabel, const std::string& inputstring) {
+std::optional<ParsedInput> UI::parseInput(InputLabel inputlabel, const std::string& inputstring) {
     switch (inputlabel) {
-        case (InputLabel::Seed):
-            return validateSeed(inputstring);
-        case (InputLabel::WallDensity):
-            return validateDouble(inputstring, 0.0, 1.0);
+        case (InputLabel::Seed): {
+            auto value = parseSeed(inputstring);
+            if (!value) return std::nullopt;
+            return ParsedInput{*value};
+        }
+        case (InputLabel::WallDensity): {
+            auto value = parseDouble(inputstring, 0.0, 1.0);
+            if (!value) return std::nullopt;
+            return ParsedInput{*value};
+        }
         case InputLabel::WaterBlobDensity:
-        case InputLabel::MudBlobDensity: 
-            return validateDouble(inputstring, 0.0, 100.0);
+        case InputLabel::MudBlobDensity: {
+            auto value = parseDouble(inputstring, 0.0, 100.0);
+            if (!value) return std::nullopt;
+            return ParsedInput{*value};
+        }
         case InputLabel::None:
-            // std::cout << "None selected";
-            return false;
+            return std::nullopt;
     }
-
-    return true;
+    return std::nullopt;
 }

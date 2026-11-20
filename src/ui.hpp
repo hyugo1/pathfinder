@@ -4,6 +4,8 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <variant>
+using ParsedInput = std::variant<unsigned int, double>;
 #include "algorithms.hpp"
 #include "appstate.hpp"
 
@@ -100,7 +102,7 @@ class UI {
         void handleTyping(char32_t c);
         void handleDelete();
         void handleEnter(GenerationSettings& generationState);
-        bool validateDouble(const std::string& input, double min, double max);
-        bool UI::validateSeed(const std::string& input);
-        bool validateInput(InputLabel inputlabel, const std::string& inputstring);
+        std::optional<double> parseDouble(const std::string& input, double min, double max);
+        std::optional<unsigned int> parseSeed(const std::string& input);
+        std::optional<ParsedInput> parseInput(InputLabel inputlabel, const std::string& inputstring);
 };
