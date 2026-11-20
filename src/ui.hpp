@@ -103,6 +103,7 @@ class UI {
         void handleDelete();
         void handleEnter(GenerationSettings& generationState);
         std::optional<double> parseDouble(const std::string& input, double min, double max);
+        unsigned int generateRandomSeed();
         std::optional<unsigned int> parseSeed(const std::string& input);
         std::optional<ParsedInput> parseInput(InputLabel inputlabel, const std::string& inputstring);
 };

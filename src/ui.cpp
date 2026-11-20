@@ -305,10 +305,20 @@ std::optional<double> UI::parseDouble(const std::string& input, double min, doub
     }
 }
 
+unsigned int UI::generateRandomSeed() {
+    std::random_device rd;
+    unsigned int seed = rd();
+    std::cout << "Using random seed: " << seed << '\n';
+    return seed;
+}
+
 std::optional<unsigned int> UI::parseSeed(const std::string& input) {
     try {
-        if (input.empty() ||
-            input.find_first_not_of("0123456789") != std::string::npos) {
+        if (input.empty()) {
+            return generateRandomSeed();
+        }
+        
+        if (input.find_first_not_of("0123456789") != std::string::npos) {
             throw std::invalid_argument("Seed must contain digits only");
         }
 
@@ -320,7 +330,7 @@ std::optional<unsigned int> UI::parseSeed(const std::string& input) {
             throw std::out_of_range("Seed value is out of range");
         }
 
-        return value;
+        return static_cast<unsigned int>(value);
 
     } catch (const std::invalid_argument& e) {
         std::cerr << "Invalid seed: " << e.what() << '\n';
