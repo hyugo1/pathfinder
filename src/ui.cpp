@@ -131,7 +131,7 @@ void UI::drawTextBoxes(sf::RenderWindow& window, const AppState& appState) {
 }
 
 
-void UI::drawInputBoxes(sf::RenderWindow& window, const AppState& appState) {
+void UI::drawInputBoxes(sf::RenderWindow& window) {
 for (const InputBox& i : inputboxList) {
         sf::RectangleShape box(i.rect.size);
         box.setPosition(i.rect.position);
@@ -140,7 +140,6 @@ for (const InputBox& i : inputboxList) {
         std::string inputText = i.inputtext;
         InputLabel inputLabel = i.label;
         box.setFillColor(color);
-
 
         switch(inputLabel) {
              case InputLabel::Seed:
@@ -177,11 +176,10 @@ for (const InputBox& i : inputboxList) {
     }   
 }
 
-
 void UI::draw(sf::RenderWindow& window, const AppState& appState) {
     drawButtons(window, appState);
     drawTextBoxes(window, appState);
-    drawInputBoxes(window, appState);
+    drawInputBoxes(window);
 }
 
 UiAction UI::handleClick(sf::Vector2i pos) {
@@ -192,7 +190,6 @@ UiAction UI::handleClick(sf::Vector2i pos) {
     }
     return UiAction::None;
 }
-
 
 std::ostream& operator<<(std::ostream& os, InputLabel input) {
     switch (input) {
@@ -272,7 +269,6 @@ void UI::handleEnter(GenerationSettings& generationState) {
                         break;
                     default:
                         break;
-                        
                 }
             } else {
                 std::cout << "Please correct your input.\n";
@@ -281,85 +277,76 @@ void UI::handleEnter(GenerationSettings& generationState) {
     }
 }
 
+bool UI::validateDouble(const std::string& input, double min, double max) {
+    try {
+        if (input.empty()) {
+            throw std::invalid_argument("Input cannot be empty");
+        }
+
+        std::size_t pos = 0;
+        double value = std::stod(input, &pos);
+
+        if (pos != input.size() || !std::isfinite(value)) {
+            throw std::invalid_argument("Invalid number");
+        }
+
+        if (value < min || value > max) {
+            throw std::invalid_argument("Value outside valid range");
+        }
+
+        return true;
+
+    } catch (const std::invalid_argument& e) {
+        std::cerr << "Invalid input: " << e.what()
+                  << ". Expected a value between "
+                  << min << " and " << max << ".\n";
+        return false;
+
+    } catch (const std::out_of_range& e) {
+        std::cerr << "Input value is out of range.\n";
+        return false;
+    }
+}
+
+bool UI::validateSeed(const std::string& input) {
+    try {
+        if (input.empty() ||
+            input.find_first_not_of("0123456789") != std::string::npos) {
+            throw std::invalid_argument("Seed must contain digits only");
+        }
+
+        std::size_t pos = 0;
+        unsigned long value = std::stoul(input, &pos);
+
+        if (pos != input.size() ||
+            value > std::numeric_limits<unsigned int>::max()) {
+            throw std::out_of_range("Seed value is out of range");
+        }
+
+        return true;
+
+    } catch (const std::invalid_argument& e) {
+        std::cerr << "Invalid seed: " << e.what() << '\n';
+        return false;
+
+    } catch (const std::out_of_range& e) {
+        std::cerr << "Seed value is out of range.\n";
+        return false;
+    }
+}
+
+
 bool UI::validateInput(InputLabel inputlabel, const std::string& inputstring) {
     switch (inputlabel) {
-        case (InputLabel::WallDensity): {
-            try {
-                std::size_t pos;
-                double input = std::stod(inputstring, &pos);
-                if (pos != inputstring.size() || input < 0.0 || input > 1.0 || !std::isfinite(input)) {
-                    throw std::invalid_argument("Invalid density");
-                }
-                std::cout << "Using " << InputLabel::WallDensity << ": " << input << '\n';
-                return true;
-
-            } catch (const std::invalid_argument& e) {
-                std::cerr << "Invalid input: " << e.what() << ". Please enter a number between 0.0 and 1.0.\n";
-                return false;
-                
-            } catch (const std::out_of_range& e) {
-                std::cerr << "Density value is out of range.\n";
-                return false;
-            }
-        }
-
-        case (InputLabel::Seed): {
-            try {
-                if (inputstring.find_first_not_of("0123456789") != std::string::npos) {
-                    throw std::invalid_argument("Seed must contain digits only");
-                }
-
-                std::size_t pos = 0;
-                unsigned long input = std::stoul(inputstring, &pos);
-
-                if (pos != inputstring.size()) {
-                    throw std::invalid_argument("Invalid seed");
-                }
-
-                if (input > std::numeric_limits<unsigned int>::max()) {
-                    throw std::out_of_range("Seed exceeds maximum value");
-                }
-
-                std::cout << "Using " << InputLabel::Seed << ": "
-                        << input << '\n';
-                return true;
-
-            } catch (const std::invalid_argument& e) {
-                std::cerr << "Invalid input: " << e.what() << ". Please enter a number between 0 and 4294967295.\n";
-                return false;
-                
-            } catch (const std::out_of_range& e) {
-                std::cerr << "Seed value is out of range.\n";
-                return false;
-            }
-        }
-
+        case (InputLabel::Seed):
+            return validateSeed(inputstring);
+        case (InputLabel::WallDensity):
+            return validateDouble(inputstring, 0.0, 1.0);
         case InputLabel::WaterBlobDensity:
         case InputLabel::MudBlobDensity: 
-            try {
-                std::size_t pos;
-                if (inputstring.find('-') != std::string::npos) {
-                    throw std::invalid_argument("Negative numbers not allowed");
-                }
-                
-                double input = std::stod(inputstring, &pos);
-                if (pos != inputstring.size() || input < 0.0 || input > 100.0 || !std::isfinite(input)) {
-                    throw std::invalid_argument("Invalid density");
-                }
-                std::cout << "Using " << InputLabel::WaterBlobDensity << ": " << input << '\n';
-                std::cout << "Using " << InputLabel::MudBlobDensity << ": " << input << '\n';
-                return true;
-
-            } catch (const std::invalid_argument& e) {
-                std::cerr << "Invalid input: " << e.what() << ". Please enter a number between 0 and 100.\n";
-                return false;
-                
-            } catch (const std::out_of_range& e) {
-                std::cerr << e.what() << "Density value is out of range.\n";
-                return false;
-            }
+            return validateDouble(inputstring, 0.0, 100.0);
         case InputLabel::None:
-            std::cout << "None selected";
+            // std::cout << "None selected";
             return false;
     }
 

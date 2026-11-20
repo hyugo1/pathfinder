@@ -93,12 +93,14 @@ class UI {
         UI();
         void drawButtons(sf::RenderWindow& window, const AppState& appState);
         void drawTextBoxes(sf::RenderWindow& window, const AppState& appState);
-        void drawInputBoxes(sf::RenderWindow& window, const AppState& appState);
+        void drawInputBoxes(sf::RenderWindow& window);
         void draw(sf::RenderWindow& window, const AppState& appState);
         UiAction handleClick(sf::Vector2i pos);
         InputLabel handleInputBoxClick(sf::Vector2i pos);
         void handleTyping(char32_t c);
         void handleDelete();
         void handleEnter(GenerationSettings& generationState);
+        bool validateDouble(const std::string& input, double min, double max);
+        bool UI::validateSeed(const std::string& input);
         bool validateInput(InputLabel inputlabel, const std::string& inputstring);
 };
