@@ -6,6 +6,7 @@
 #include <iostream>
 #include <cstdlib>
 #include "grid.hpp"
+#include "input.hpp"
 
 Grid generateRandomGrid(int rows, int cols, double wallDensity, double mudCount, double waterCount, unsigned int seed) {
     if (rows <= 0 || cols <= 0) return {};

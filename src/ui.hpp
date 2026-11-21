@@ -4,10 +4,9 @@
 #include <optional>
 #include <string>
 #include <vector>
-#include <variant>
-using ParsedInput = std::variant<unsigned int, double>;
 #include "algorithms.hpp"
 #include "appstate.hpp"
+#include "input.hpp"
 
 constexpr int PANEL_WIDTH = 200;
 
@@ -20,12 +19,6 @@ constexpr float BUTTON_SPACE = 50.0f;
 constexpr float TEXTBOX_WIDTH = 180.0f;
 constexpr float TEXTBOX_HEIGHT = 40.0f;
 constexpr float TEXTBOX_SPACE = 50.0f;
-
-
-const double minWallDensityRange = 0.0;
-const double maxWallDensityRange = 100.0;
-const double minBlobDensityRange = 0.0;
-const double maxBlobDensityRange = 100.0;
 
 enum class UiAction {
     None,
@@ -44,14 +37,6 @@ enum class StatType {
     TotalNodesExplored,
     TotalCost,
     PathLength
-};
-
-enum class InputLabel {
-    None,
-    Seed,
-    WallDensity,
-    MudBlobDensity,
-    WaterBlobDensity,
 };
 
 class UI {
@@ -108,8 +93,4 @@ class UI {
         void handleTyping(char32_t c);
         void handleDelete();
         void handleEnter(GenerationSettings& generationState);
-        std::optional<double> parseDouble(const std::string& input, double min, double max);
-        unsigned int generateRandomSeed();
-        std::optional<unsigned int> parseSeed(const std::string& input);
-        std::optional<ParsedInput> parseInput(InputLabel inputlabel, const std::string& inputstring);
 };

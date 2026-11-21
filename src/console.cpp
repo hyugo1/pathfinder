@@ -4,6 +4,7 @@
 #include "grid.hpp"
 #include "algorithms.hpp"
 #include "appstate.hpp"
+#include "input.hpp"
 #include <string>
 #include <optional>
 #include <random>
