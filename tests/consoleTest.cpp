@@ -118,7 +118,7 @@ TEST(ConsoleTest, askForWallDensity_Zero_ReturnsZero) {
     auto value = askForWallDensity();
 
     ASSERT_TRUE(value.has_value());
-    EXPECT_DOUBLE_EQ(value.value(), 0.0);
+    EXPECT_DOUBLE_EQ(value.value(), minWallDensityRange);
 }
 
 TEST(ConsoleTest, askForWallDensity_MaxValue_Returns100) {
@@ -128,7 +128,7 @@ TEST(ConsoleTest, askForWallDensity_MaxValue_Returns100) {
     auto value = askForWallDensity();
 
     ASSERT_TRUE(value.has_value());
-    EXPECT_DOUBLE_EQ(value.value(), 100.0);
+    EXPECT_DOUBLE_EQ(value.value(), maxWallDensityRange);
 }
 
 TEST(ConsoleTest, askForWallDensity_InvalidRange_AsksAgain) {
@@ -199,7 +199,7 @@ TEST(ConsoleTest, askForMudCount_Zero_ReturnsZero) {
     auto value = askForMudCount();
 
     ASSERT_TRUE(value.has_value());
-    EXPECT_DOUBLE_EQ(value.value(), 0.0);
+    EXPECT_DOUBLE_EQ(value.value(), minBlobDensityRange);
 }
 
 TEST(ConsoleTest, askForMudCount_MaxValue_Returns100) {
@@ -209,7 +209,7 @@ TEST(ConsoleTest, askForMudCount_MaxValue_Returns100) {
     auto value = askForMudCount();
 
     ASSERT_TRUE(value.has_value());
-    EXPECT_DOUBLE_EQ(value.value(), 100.0);
+    EXPECT_DOUBLE_EQ(value.value(), maxBlobDensityRange);
 }
 
 TEST(ConsoleTest, askForMudCount_InvalidRange_AsksAgain) {
