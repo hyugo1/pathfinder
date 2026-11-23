@@ -3,12 +3,28 @@
 
 #include <gtest/gtest.h>
 
+class CinRedirect {
+public:
+    // Constructor: temporarily redirects std::cin
+    explicit CinRedirect(std::istream& input)
+        : oldBuffer(std::cin.rdbuf(input.rdbuf())) {}//input.rdbuf() gives the actual input content. std::cin.rdbuf replaces the buffer used by std::cin
+
+    // Destructor: restores the original std::cin
+    ~CinRedirect() {
+        std::cin.rdbuf(oldBuffer);
+    }
+
+private:
+    // Remembers the original std::cin buffer
+    std::streambuf* oldBuffer;
+};
+
 TEST(ConsoleTest, printAlgorithmName_ReturnsCorrectInput) {
     Algorithm algo = Algorithm::DFS;
 
     testing::internal::CaptureStdout();
     printAlgorithmName(algo);
-    std::string output = testing::internal::GetCapturedStdout();
+    std::string output = testing::internal::GetCapturedStdout();//capture the output instead of displaying it in the terminal
 
     EXPECT_EQ(output, "Using DFS.\n");
 }
@@ -17,15 +33,12 @@ TEST(ConsoleTest, printAlgorithmName_ReturnsCorrectInput) {
 TEST(ConsoleTest, askForSeed_ReturnsCorrectInput) {
     std::istringstream input("5\n");
     
-    // Redirect std::cin
-    std::streambuf* oldCin = std::cin.rdbuf(input.rdbuf());
-    
+    CinRedirect redirect(input);
     testing::internal::CaptureStdout();
-    std::optional<unsigned int> value = askForSeed();
+    auto value = askForSeed();
+
     std::string output = testing::internal::GetCapturedStdout();
 
-    // Restore std::cin
-    std::cin.rdbuf(oldCin);
     ASSERT_TRUE(value.has_value());
     EXPECT_EQ(value, std::optional<unsigned int>(5));
 
@@ -35,11 +48,9 @@ TEST(ConsoleTest, askForSeed_ReturnsCorrectInput) {
 
 TEST(ConsoleTest, askForSeed_EmptyInput_ReturnsRandomSeed) {
     std::istringstream input("\n");
-    std::streambuf* oldCin = std::cin.rdbuf(input.rdbuf());
+    CinRedirect redirect(input);
 
     auto value = askForSeed();
-
-    std::cin.rdbuf(oldCin);
 
     ASSERT_TRUE(value.has_value());
     EXPECT_GT(value.value(), 0u);
@@ -47,11 +58,9 @@ TEST(ConsoleTest, askForSeed_EmptyInput_ReturnsRandomSeed) {
 
 TEST(ConsoleTest, askForSeed_InvalidInputThenValidInput) {
     std::istringstream input("abc\n-5\n10\n");
-    std::streambuf* oldCin = std::cin.rdbuf(input.rdbuf());
+    CinRedirect redirect(input);
 
     auto value = askForSeed();
-
-    std::cin.rdbuf(oldCin);
 
     ASSERT_TRUE(value.has_value());
     EXPECT_EQ(value.value(), 10u);
@@ -62,24 +71,21 @@ TEST(ConsoleTest, askForSeed_InvalidInputThenValidInput) {
 TEST(ConsoleTest, askForWallDensity_ReturnsCorrectInput) {
     std::istringstream input("4\n");
     
-    std::streambuf* oldCin = std::cin.rdbuf(input.rdbuf());
+    CinRedirect redirect(input);
     
     testing::internal::CaptureStdout();
     std::optional<double> value = askForWallDensity();
     std::string output = testing::internal::GetCapturedStdout();
 
-    std::cin.rdbuf(oldCin);
     ASSERT_TRUE(value.has_value());
     EXPECT_DOUBLE_EQ(value.value(), 4.0);
 }
 
 TEST(ConsoleTest, askForWallDensity_EmptyInput_ReturnsDefaultWallDensity) {
     std::istringstream input("\n");
-    std::streambuf* oldCin = std::cin.rdbuf(input.rdbuf());
+    CinRedirect redirect(input);
 
     auto value = askForWallDensity();
-
-    std::cin.rdbuf(oldCin);
 
     ASSERT_TRUE(value.has_value());
     EXPECT_EQ(value.value(), GenerationSettings{}.wallDensity);
@@ -87,11 +93,9 @@ TEST(ConsoleTest, askForWallDensity_EmptyInput_ReturnsDefaultWallDensity) {
 
 TEST(ConsoleTest, askForWallDensity_InvalidInputThenValidInput) {
     std::istringstream input("abc\n-5\n10\n");
-    std::streambuf* oldCin = std::cin.rdbuf(input.rdbuf());
+    CinRedirect redirect(input);
 
     auto value = askForWallDensity();
-
-    std::cin.rdbuf(oldCin);
 
     ASSERT_TRUE(value.has_value());
     EXPECT_DOUBLE_EQ(value.value(), 10.0);
@@ -99,11 +103,9 @@ TEST(ConsoleTest, askForWallDensity_InvalidInputThenValidInput) {
 
 TEST(ConsoleTest, askForWallDensity_EOF_ReturnsNullopt) {
     std::istringstream input("");
-    std::streambuf* oldCin = std::cin.rdbuf(input.rdbuf());
+    CinRedirect redirect(input);
 
     auto value = askForWallDensity();
-
-    std::cin.rdbuf(oldCin);
 
     EXPECT_FALSE(value.has_value());
 }
@@ -111,11 +113,9 @@ TEST(ConsoleTest, askForWallDensity_EOF_ReturnsNullopt) {
 
 TEST(ConsoleTest, askForWallDensity_Zero_ReturnsZero) {
     std::istringstream input("0\n");
-    std::streambuf* oldCin = std::cin.rdbuf(input.rdbuf());
+    CinRedirect redirect(input);
 
     auto value = askForWallDensity();
-
-    std::cin.rdbuf(oldCin);
 
     ASSERT_TRUE(value.has_value());
     EXPECT_DOUBLE_EQ(value.value(), 0.0);
@@ -123,11 +123,9 @@ TEST(ConsoleTest, askForWallDensity_Zero_ReturnsZero) {
 
 TEST(ConsoleTest, askForWallDensity_MaxValue_Returns100) {
     std::istringstream input("100\n");
-    std::streambuf* oldCin = std::cin.rdbuf(input.rdbuf());
+    CinRedirect redirect(input);
 
     auto value = askForWallDensity();
-
-    std::cin.rdbuf(oldCin);
 
     ASSERT_TRUE(value.has_value());
     EXPECT_DOUBLE_EQ(value.value(), 100.0);
@@ -135,21 +133,16 @@ TEST(ConsoleTest, askForWallDensity_MaxValue_Returns100) {
 
 TEST(ConsoleTest, askForWallDensity_InvalidRange_AsksAgain) {
     std::istringstream input("110\n50\n");
-    std::streambuf* oldCin = std::cin.rdbuf(input.rdbuf());
+    CinRedirect redirect(input);
 
-    testing::internal::CaptureStderr();
+    testing::internal::CaptureStderr();//start recording error msg
 
     auto value = askForWallDensity();
 
-    std::string errorOutput = testing::internal::GetCapturedStderr();
-
-    std::cin.rdbuf(oldCin);
+    std::string errorOutput = testing::internal::GetCapturedStderr(); //stop recording
 
     ASSERT_TRUE(value.has_value());
     EXPECT_DOUBLE_EQ(value.value(), 50.0);
 
-    EXPECT_NE(
-        errorOutput.find("Invalid input: Value outside valid range."),
-        std::string::npos
-    );
+    EXPECT_NE(errorOutput.find("Invalid input: Value outside valid range."),std::string::npos);
 }
