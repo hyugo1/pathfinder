@@ -64,6 +64,25 @@ TEST(ConsoleTest, askForSeed_InvalidInputThenValidInput) {
     EXPECT_EQ(value.value(), 10u);
 }
 
+TEST(ConsoleTest, askForSeed_HandlesWhitespace) {
+    std::istringstream input("  10  \n");
+    CinRedirect redirect(input);
+
+    auto value = askForSeed();
+
+    ASSERT_TRUE(value.has_value());
+    EXPECT_EQ(value.value(), 10u);
+}
+
+TEST(ConsoleTest, askForSeed_CheckWhitespaceOnly) {
+    std::istringstream input("   \n");
+    CinRedirect redirect(input);
+
+    auto value = askForSeed();
+
+    ASSERT_TRUE(value.has_value());
+    EXPECT_GT(value.value(), 0u);
+}
 
 // --- wall density --- 
 TEST(ConsoleTest, askForWallDensity_ReturnsCorrectInput) {
@@ -90,13 +109,13 @@ TEST(ConsoleTest, askForWallDensity_EmptyInput_ReturnsDefaultWallDensity) {
 }
 
 TEST(ConsoleTest, askForWallDensity_InvalidInputThenValidInput) {
-    std::istringstream input("abc\n-5\n10\n");
+    std::istringstream input("abc\n-5.0\n10.1\n");
     CinRedirect redirect(input);
 
     auto value = askForWallDensity();
 
     ASSERT_TRUE(value.has_value());
-    EXPECT_DOUBLE_EQ(value.value(), 10.0);
+    EXPECT_DOUBLE_EQ(value.value(), 10.1);
 }
 
 TEST(ConsoleTest, askForWallDensity_EOF_ReturnsNullopt) {
@@ -142,6 +161,26 @@ TEST(ConsoleTest, askForWallDensity_InvalidRange_AsksAgain) {
     EXPECT_DOUBLE_EQ(value.value(), 50.0);
 
     EXPECT_NE(errorOutput.find("Invalid input: Value outside valid range."),std::string::npos);
+}
+
+TEST(ConsoleTest, askForWallDensity_HandlesWhitespace) {
+    std::istringstream input("    10.1        \n");
+    CinRedirect redirect(input);
+
+    auto value = askForWallDensity();
+
+    ASSERT_TRUE(value.has_value());
+    EXPECT_DOUBLE_EQ(value.value(), 10.1);
+}
+
+TEST(ConsoleTest, askForWallDensity_CheckWhitespaceOnly) {
+    std::istringstream input("   \n");
+    CinRedirect redirect(input);
+
+    auto value = askForWallDensity();
+
+    ASSERT_TRUE(value.has_value());
+    EXPECT_DOUBLE_EQ(value.value(), GenerationSettings{}.wallDensity);
 }
 
 
@@ -224,7 +263,25 @@ TEST(ConsoleTest, askForMudCount_InvalidRange_AsksAgain) {
     EXPECT_NE(errorOutput.find("Invalid input: Value outside valid range."),std::string::npos);
 }
 
+TEST(ConsoleTest, askForMudCount_HandlesWhitespace) {
+    std::istringstream input("    10.1        \n");
+    CinRedirect redirect(input);
 
+    auto value = askForMudCount();
+
+    ASSERT_TRUE(value.has_value());
+    EXPECT_DOUBLE_EQ(value.value(), 10.1);
+}
+
+TEST(ConsoleTest, askForMudCount_CheckWhitespaceOnly) {
+    std::istringstream input("   \n");
+    CinRedirect redirect(input);
+
+    auto value = askForMudCount();
+
+    ASSERT_TRUE(value.has_value());
+    EXPECT_DOUBLE_EQ(value.value(), GenerationSettings{}.mudCount);
+}
 
 // --- WaterCount --- 
 TEST(ConsoleTest, askForWaterCount_ReturnsCorrectInput) {
@@ -303,4 +360,24 @@ TEST(ConsoleTest, askForWaterCount_InvalidRange_AsksAgain) {
     EXPECT_DOUBLE_EQ(value.value(), 50.0);
 
     EXPECT_NE(errorOutput.find("Invalid input: Value outside valid range."),std::string::npos);
+}
+
+TEST(ConsoleTest, askForWaterCount_HandlesWhitespace) {
+    std::istringstream input("    10.1        \n");
+    CinRedirect redirect(input);
+
+    auto value = askForWaterCount();
+
+    ASSERT_TRUE(value.has_value());
+    EXPECT_DOUBLE_EQ(value.value(), 10.1);
+}
+
+TEST(ConsoleTest, askForWaterCount_CheckWhitespaceOnly) {
+    std::istringstream input("   \n");
+    CinRedirect redirect(input);
+
+    auto value = askForWaterCount();
+
+    ASSERT_TRUE(value.has_value());
+    EXPECT_DOUBLE_EQ(value.value(), GenerationSettings{}.waterCount);
 }
