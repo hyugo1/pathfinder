@@ -6,6 +6,9 @@
 #include <cmath>
 #include <variant>
 #include <stdexcept>
+#include <algorithm>
+#include <cctype>
+#include <string>
 
 std::optional<double> parseDouble(const std::string& input, double min, double max) {
     try {
@@ -106,4 +109,22 @@ std::optional<ParsedInput> parseInput(InputLabel inputlabel, const std::string& 
             return std::nullopt;
     }
     return std::nullopt;
+}
+
+std::string trim(const std::string& input) {
+    auto start = std::find_if_not(input.begin(), input.end(),
+        [](unsigned char ch) {
+            return std::isspace(ch);
+        });
+
+    auto end = std::find_if_not(input.rbegin(), input.rend(),
+        [](unsigned char ch) {
+            return std::isspace(ch);
+        }).base();
+
+    if (start >= end) {
+        return "";
+    }
+
+    return std::string(start, end);
 }
