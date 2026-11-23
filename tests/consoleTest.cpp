@@ -15,8 +15,7 @@ public:
     }
 
 private:
-    // Remembers the original std::cin buffer
-    std::streambuf* oldBuffer;
+    std::streambuf* oldBuffer;// Remembers the original std::cin buffer
 };
 
 TEST(ConsoleTest, printAlgorithmName_ReturnsCorrectInput) {
@@ -44,7 +43,6 @@ TEST(ConsoleTest, askForSeed_ReturnsCorrectInput) {
 
     EXPECT_NE(output.find("Enter a seed"), std::string::npos);
 }
-
 
 TEST(ConsoleTest, askForSeed_EmptyInput_ReturnsRandomSeed) {
     std::istringstream input("\n");
@@ -109,7 +107,6 @@ TEST(ConsoleTest, askForWallDensity_EOF_ReturnsNullopt) {
 
     EXPECT_FALSE(value.has_value());
 }
-
 
 TEST(ConsoleTest, askForWallDensity_Zero_ReturnsZero) {
     std::istringstream input("0\n");
@@ -191,7 +188,6 @@ TEST(ConsoleTest, askForMudCount_EOF_ReturnsNullopt) {
     EXPECT_FALSE(value.has_value());
 }
 
-
 TEST(ConsoleTest, askForMudCount_Zero_ReturnsZero) {
     std::istringstream input("0\n");
     CinRedirect redirect(input);
@@ -216,11 +212,92 @@ TEST(ConsoleTest, askForMudCount_InvalidRange_AsksAgain) {
     std::istringstream input("110\n50\n");
     CinRedirect redirect(input);
 
-    testing::internal::CaptureStderr();//start recording error msg
+    testing::internal::CaptureStderr();
 
     auto value = askForMudCount();
 
-    std::string errorOutput = testing::internal::GetCapturedStderr(); //stop recording
+    std::string errorOutput = testing::internal::GetCapturedStderr();
+
+    ASSERT_TRUE(value.has_value());
+    EXPECT_DOUBLE_EQ(value.value(), 50.0);
+
+    EXPECT_NE(errorOutput.find("Invalid input: Value outside valid range."),std::string::npos);
+}
+
+
+
+// --- WaterCount --- 
+TEST(ConsoleTest, askForWaterCount_ReturnsCorrectInput) {
+    std::istringstream input("4\n");
+    
+    CinRedirect redirect(input);
+    
+    testing::internal::CaptureStdout();
+    std::optional<double> value = askForWaterCount();
+    std::string output = testing::internal::GetCapturedStdout();
+
+    ASSERT_TRUE(value.has_value());
+    EXPECT_DOUBLE_EQ(value.value(), 4.0);
+}
+
+TEST(ConsoleTest, askForWaterCount_EmptyInput_ReturnsDefaultWaterCount) {
+    std::istringstream input("\n");
+    CinRedirect redirect(input);
+
+    auto value = askForWaterCount();
+
+    ASSERT_TRUE(value.has_value());
+    EXPECT_EQ(value.value(), GenerationSettings{}.waterCount);
+}
+
+TEST(ConsoleTest, askForWaterCount_InvalidInputThenValidInput) {
+    std::istringstream input("abc\n-5\n10\n");
+    CinRedirect redirect(input);
+
+    auto value = askForWaterCount();
+
+    ASSERT_TRUE(value.has_value());
+    EXPECT_DOUBLE_EQ(value.value(), 10.0);
+}
+
+TEST(ConsoleTest, askForWaterCount_EOF_ReturnsNullopt) {
+    std::istringstream input("");
+    CinRedirect redirect(input);
+
+    auto value = askForWaterCount();
+
+    EXPECT_FALSE(value.has_value());
+}
+
+TEST(ConsoleTest, askForWaterCount_Zero_ReturnsZero) {
+    std::istringstream input("0\n");
+    CinRedirect redirect(input);
+
+    auto value = askForWaterCount();
+
+    ASSERT_TRUE(value.has_value());
+    EXPECT_DOUBLE_EQ(value.value(), minBlobDensityRange);
+}
+
+TEST(ConsoleTest, askForWaterCount_MaxValue_Returns100) {
+    std::istringstream input("100\n");
+    CinRedirect redirect(input);
+
+    auto value = askForWaterCount();
+
+    ASSERT_TRUE(value.has_value());
+    EXPECT_DOUBLE_EQ(value.value(), maxBlobDensityRange);
+}
+
+TEST(ConsoleTest, askForWaterCount_InvalidRange_AsksAgain) {
+    std::istringstream input("110\n50\n");
+    CinRedirect redirect(input);
+
+    testing::internal::CaptureStderr();
+
+    auto value = askForWaterCount();
+
+    std::string errorOutput = testing::internal::GetCapturedStderr();
 
     ASSERT_TRUE(value.has_value());
     EXPECT_DOUBLE_EQ(value.value(), 50.0);
