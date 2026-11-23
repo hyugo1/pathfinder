@@ -146,3 +146,84 @@ TEST(ConsoleTest, askForWallDensity_InvalidRange_AsksAgain) {
 
     EXPECT_NE(errorOutput.find("Invalid input: Value outside valid range."),std::string::npos);
 }
+
+
+// --- MudCount --- 
+TEST(ConsoleTest, askForMudCount_ReturnsCorrectInput) {
+    std::istringstream input("4\n");
+    
+    CinRedirect redirect(input);
+    
+    testing::internal::CaptureStdout();
+    std::optional<double> value = askForMudCount();
+    std::string output = testing::internal::GetCapturedStdout();
+
+    ASSERT_TRUE(value.has_value());
+    EXPECT_DOUBLE_EQ(value.value(), 4.0);
+}
+
+TEST(ConsoleTest, askForMudCount_EmptyInput_ReturnsDefaultMudCount) {
+    std::istringstream input("\n");
+    CinRedirect redirect(input);
+
+    auto value = askForMudCount();
+
+    ASSERT_TRUE(value.has_value());
+    EXPECT_EQ(value.value(), GenerationSettings{}.mudCount);
+}
+
+TEST(ConsoleTest, askForMudCount_InvalidInputThenValidInput) {
+    std::istringstream input("abc\n-5\n10\n");
+    CinRedirect redirect(input);
+
+    auto value = askForMudCount();
+
+    ASSERT_TRUE(value.has_value());
+    EXPECT_DOUBLE_EQ(value.value(), 10.0);
+}
+
+TEST(ConsoleTest, askForMudCount_EOF_ReturnsNullopt) {
+    std::istringstream input("");
+    CinRedirect redirect(input);
+
+    auto value = askForMudCount();
+
+    EXPECT_FALSE(value.has_value());
+}
+
+
+TEST(ConsoleTest, askForMudCount_Zero_ReturnsZero) {
+    std::istringstream input("0\n");
+    CinRedirect redirect(input);
+
+    auto value = askForMudCount();
+
+    ASSERT_TRUE(value.has_value());
+    EXPECT_DOUBLE_EQ(value.value(), 0.0);
+}
+
+TEST(ConsoleTest, askForMudCount_MaxValue_Returns100) {
+    std::istringstream input("100\n");
+    CinRedirect redirect(input);
+
+    auto value = askForMudCount();
+
+    ASSERT_TRUE(value.has_value());
+    EXPECT_DOUBLE_EQ(value.value(), 100.0);
+}
+
+TEST(ConsoleTest, askForMudCount_InvalidRange_AsksAgain) {
+    std::istringstream input("110\n50\n");
+    CinRedirect redirect(input);
+
+    testing::internal::CaptureStderr();//start recording error msg
+
+    auto value = askForMudCount();
+
+    std::string errorOutput = testing::internal::GetCapturedStderr(); //stop recording
+
+    ASSERT_TRUE(value.has_value());
+    EXPECT_DOUBLE_EQ(value.value(), 50.0);
+
+    EXPECT_NE(errorOutput.find("Invalid input: Value outside valid range."),std::string::npos);
+}
