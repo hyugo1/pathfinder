@@ -5,6 +5,7 @@
 #include "console.hpp"
 #include "renderer.hpp"
 #include "generator.hpp"
+#include "ui.hpp"
 #include <SFML/Graphics.hpp>
 #include <chrono>
 #include <iostream>
@@ -12,57 +13,15 @@
 #include <thread>
 
 
-void handleKeyboardEvent(AppState& appState, AnimationState& animationState, const std::optional<sf::Event>& event, sf::RenderWindow& window) {
+void handleKeyboardEvent(AppState& appState, AnimationState& animationState, GenerationSettings& generationState, const std::optional<sf::Event>& event, sf::RenderWindow& window) {
     if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
-        if ((keyPressed->code == sf::Keyboard::Key::Num1 ||
-                keyPressed->code == sf::Keyboard::Key::Num2 ||
-                keyPressed->code == sf::Keyboard::Key::Num3 ||
-                keyPressed->code == sf::Keyboard::Key::Num4) &&
-            (appState.start.first == -1 || appState.end.first == -1)) {
-
-            std::cout << "Set start and end first!\n";
-            return;
-        }
-
+        //FIXME: add start and end setter reminder if no generation and select algo first
         switch (keyPressed->code) {
             case sf::Keyboard::Key::Escape:
                 window.close();
                 break;
-            case sf::Keyboard::Key::Num1:
-                printAlgorithmName(Algorithm::DFS);
-                appState.chosenAlgo = Algorithm::DFS;
-                appState.gridChanged = true;
-                appState.statsRequested = true;
-                break;
-            case sf::Keyboard::Key::Num2:
-                printAlgorithmName(Algorithm::BFS);
-                appState.chosenAlgo = Algorithm::BFS;
-                appState.gridChanged = true;
-                appState.statsRequested = true;
-                break;
-            case sf::Keyboard::Key::Num3:
-                printAlgorithmName(Algorithm::AStar);
-                appState.chosenAlgo = Algorithm::AStar;
-                appState.gridChanged = true;
-                appState.statsRequested = true;
-                break;
-            case sf::Keyboard::Key::Num4:
-                printAlgorithmName(Algorithm::Dijkstra);
-                appState.chosenAlgo = Algorithm::Dijkstra;
-                appState.gridChanged = true;
-                appState.statsRequested = true;
-                break;
             case sf::Keyboard::Key::C:
-                std::cout << "Clearing the entire grid.\n";
-                appState.gridChanged = true;
-                appState.chosenAlgo = Algorithm::None;
-                appState.start = {-1, -1};
-                appState.end = {-1, -1};
-                
-                appState.statsRequested = false;
-                resetGrid(appState.grid);
-                resetSearchState(appState.result, animationState);
-                ++appState.latestVersion;  
+                clearAll(appState, animationState);
                 break;
             case sf::Keyboard::Key::D:
                 if (THREAD_SLEEP_SECONDS == 2) {
@@ -74,16 +33,9 @@ void handleKeyboardEvent(AppState& appState, AnimationState& animationState, con
                 }
                 break;
             case sf::Keyboard::Key::G: {
-                std::cout << "Generating a new random grid.\n";
-                std::optional<unsigned int> seed = askForSeed();
-                if (!seed) break;
-                std::optional<double> wallDensity = askForWallDensity();
-                if (!wallDensity) break;
-                std::optional<double> mudCount = askForMudCount();
-                if (!mudCount) break;
-                std::optional<double> waterCount = askForWaterCount();
-                if (!waterCount) break;
-                appState.grid = generateRandomGrid(ROWS, COLS, *wallDensity, *mudCount, *waterCount, *seed);
+                if (!generationState.seed) break;
+
+                appState.grid = generateRandomGrid(ROWS, COLS, generationState.wallDensity, generationState.mudCount, generationState.waterCount, *generationState.seed);
                 auto [start, end] = findStartAndEndPositions(appState.grid);
                 appState.start = start;
                 appState.end = end;
@@ -97,7 +49,6 @@ void handleKeyboardEvent(AppState& appState, AnimationState& animationState, con
             case sf::Keyboard::Key::LShift:
                 break;
             default:
-                std::cout << "Unknown key pressed.\n";
                 break;
         }
     }
@@ -134,6 +85,28 @@ void handleMouseEvent(AppState& appState, AnimationState& animationState, const 
     }
 }
 
+
+void handleTextInputEvent(AppState& appState, GenerationSettings& generationState, const std::optional<sf::Event>& event, UI& ui) {
+    if (!event.has_value()) {
+        return;
+    }
+
+     if (const auto* textEntered = event->getIf<sf::Event::TextEntered>()) {
+        if (textEntered->unicode == 8) {
+            //backspace
+            ui.handleDelete();
+        } else if (textEntered->unicode == 10) {
+            //Enter
+            ui.handleEnter(generationState);
+        // } else if (textEntered->unicode == ) {
+            // whitespace
+
+        } else if (textEntered->unicode < 128) {
+            ui.handleTyping(textEntered->unicode);
+        }
+    }
+}
+
 void processWorkerResult(AppState& appState, AnimationState& animationState, SearchWorker& worker) {
     if (const std::optional<Response> response = worker.poll()) {
         if (response->version == appState.latestVersion) {
@@ -165,14 +138,93 @@ void processGridChanges(AppState& appState, AnimationState& animationState, bool
     }
 }
 
-void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationState& animationState, bool threadedMode, SearchWorker& worker) {
+void clearAll(AppState& appState, AnimationState& animationState) {
+    std::cout << "Clearing the entire grid.\n";
+    appState.gridChanged = true;
+    appState.chosenAlgo = Algorithm::None;
+    appState.start = {-1, -1};
+    appState.end = {-1, -1};
+    
+    appState.statsRequested = false;
+    resetGrid(appState.grid);
+    resetSearchState(appState.result, animationState);
+    ++appState.latestVersion; 
+}
+
+void applyUiAction(AppState& appState, AnimationState& animationState, GenerationSettings& generationState, UiAction action) {
+    switch (action) {
+        case UiAction::Clear:
+            clearAll(appState, animationState);
+            break;
+        case UiAction::Generate: {
+            if (!generationState.seed) break;
+
+            appState.grid = generateRandomGrid(ROWS, COLS, generationState.wallDensity, generationState.mudCount, generationState.waterCount, *generationState.seed);
+            auto [start, end] = findStartAndEndPositions(appState.grid);
+            appState.start = start;
+            appState.end = end;
+            appState.statsRequested = false;
+            appState.gridChanged = true;
+            appState.chosenAlgo = Algorithm::None;
+            resetSearchState(appState.result, animationState);
+            ++appState.latestVersion;  
+            break;
+        }
+        case UiAction::SelectDFS:
+            printAlgorithmName(Algorithm::DFS);
+            appState.chosenAlgo = Algorithm::DFS;
+            appState.gridChanged = true;
+            appState.statsRequested = true;
+            break;
+        case UiAction::SelectBFS:
+            printAlgorithmName(Algorithm::BFS);
+            appState.chosenAlgo = Algorithm::BFS;
+            appState.gridChanged = true;
+            appState.statsRequested = true;
+            break;
+        case UiAction::SelectAStar:
+            printAlgorithmName(Algorithm::AStar);
+            appState.chosenAlgo = Algorithm::AStar;
+            appState.gridChanged = true;
+            appState.statsRequested = true;
+            break;
+        case UiAction::SelectDijkstra:
+            printAlgorithmName(Algorithm::Dijkstra);
+            appState.chosenAlgo = Algorithm::Dijkstra;
+            appState.gridChanged = true;
+            appState.statsRequested = true;
+            break;
+        case UiAction::ToggleDelay:
+            if (THREAD_SLEEP_SECONDS == 2) {
+                std::cout << "Removing delay.\n";
+                THREAD_SLEEP_SECONDS = 0;
+            } else {
+                std::cout << "Adding delay of 2 second to make threading more visible.\n";
+                THREAD_SLEEP_SECONDS = 2;
+            }
+            break;
+        case UiAction::ToggleSeedLock:
+            break;
+        case UiAction::None:
+            break;
+    }
+}
+
+void processGUIFrame(sf::RenderWindow& window, AppState& appState, AnimationState& animationState, GenerationSettings& generationState, bool threadedMode, SearchWorker& worker, UI& ui) {
     while (const std::optional<sf::Event> event = window.pollEvent()) {
+        if (const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>()) {
+            if (mousePressed->button == sf::Mouse::Button::Left) {
+                UiAction action = ui.handleClick(mousePressed->position);
+                applyUiAction(appState, animationState, generationState, action);
+                ui.handleInputBoxClick(mousePressed->position);
+            }
+        }
         if (event->is<sf::Event::Closed>()) {
             window.close();
         }
-
-        handleKeyboardEvent(appState, animationState, event, window);
+        handleKeyboardEvent(appState, animationState, generationState, event, window);
         handleMouseEvent(appState, animationState, event);
+        handleTextInputEvent(appState, generationState, event, ui);
     }
 
     processGridChanges(appState, animationState, threadedMode, worker);
@@ -204,16 +256,19 @@ void renderGUI(sf::RenderWindow& window, const AppState& appState, const Animati
 void runGuiMode(AppState& appState, sf::RenderWindow& window, bool threadedMode) {
     
     AnimationState animationState;
+    GenerationSettings generationState;    
     SearchWorker worker;
+    UI ui;
 
     while (window.isOpen()) {
         // --- EVENT ---
-        processGUIFrame(window, appState, animationState, threadedMode, worker);
+        processGUIFrame(window, appState, animationState, generationState, threadedMode, worker, ui);
 
         // --- RENDER ---
         window.clear(sf::Color::White);
 
         renderGUI(window, appState, animationState);
+        ui.draw(window, appState);
 
         window.display();
     }

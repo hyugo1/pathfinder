@@ -31,7 +31,6 @@ struct AnimationState {
     std::chrono::steady_clock::time_point clock = std::chrono::steady_clock::now();
 };
 
-
 void resetAnimationStates(AnimationState& animationState);
 void resetSearchState(SearchResult& result, AnimationState& animationState);
 void updateCellType(AppState& appState, AnimationState& animationState, int row, int col, CellType requestedCellType);

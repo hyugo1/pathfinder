@@ -6,18 +6,23 @@
 #include <iostream>
 #include <cstdlib>
 #include "grid.hpp"
+#include "input.hpp"
 
 Grid generateRandomGrid(int rows, int cols, double wallDensity, double mudCount, double waterCount, unsigned int seed) {
     if (rows <= 0 || cols <= 0) return {};
     std::mt19937 rng(seed);
     std::uniform_real_distribution<double> dist(0.0, 1.0);// squash the long range into 0 to 1.
 
+    std::cout << "using Wall Density: " << wallDensity << '\n';
+    std::cout << "using mudCount: " << mudCount << '\n';
+    std::cout << "using waterCount: " << waterCount << '\n';
+    std::cout << "using seed: " << seed << '\n';
 
     Grid grid(rows, std::vector<CellType>(cols, CellType::Open));//empty board
     std::vector<Position> openCells;
     for (int r = 0; r < rows; ++r) {
         for (int c = 0; c < cols; ++c) {
-            if (dist(rng) < wallDensity) {
+            if (dist(rng) < (wallDensity / 100)) { // convert wallDensity to match dist
                 grid[r][c] = CellType::Wall;
             } else {
                 openCells.emplace_back(r, c);

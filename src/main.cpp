@@ -6,6 +6,7 @@
 #include "renderer.hpp"
 #include "appstate.hpp"
 #include "grid.hpp"
+#include "ui.hpp"
 
 void runApp(AppState& appState) {
     int choice = askForModeChoice();
@@ -14,7 +15,7 @@ void runApp(AppState& appState) {
     } else {
         bool threadedMode = chooseThreadedMode();
         sf::RenderWindow window(
-            sf::VideoMode({COLS * CELL_SIZE, ROWS * CELL_SIZE}),
+            sf::VideoMode({COLS * CELL_SIZE + PANEL_WIDTH, ROWS * CELL_SIZE}),
             "Pathfinding Visualizer"
         );
         runGuiMode(appState, window, threadedMode);

@@ -3,12 +3,12 @@
 #include "console.hpp"
 #include "grid.hpp"
 #include "algorithms.hpp"
+#include "input.hpp"
 #include <string>
 #include <optional>
 #include <random>
 #include <limits>
 #include <stdexcept>
-#include <cmath>
 #include <ios>
 
 void printAlgorithmName(const Algorithm& algo) {
@@ -174,59 +174,29 @@ std::optional<unsigned int> askForSeed() {
             return std::nullopt;
         }
         if (input.empty()) {
-            std::random_device rd;
-            unsigned int seed = rd();
-            std::cout << "Using random seed: " << seed << '\n';
-            return seed;
+            return generateRandomSeed();
         }
-        try {
-            if (input.find_first_not_of("0123456789") != std::string::npos) {
-                throw std::invalid_argument("Seed must contain digits only");
-            }
-            std::size_t pos = 0;// length of the number
-            unsigned long value = std::stoul(input, &pos);
-            if (pos != input.size() ||
-                value == 0 ||
-                value > std::numeric_limits<unsigned int>::max()) {
-                throw std::invalid_argument("Seed out of range");
-            }
-            unsigned int seed = static_cast<unsigned int>(value);
-            std::cout << "Using seed: " << seed << '\n';
-            return seed;
-        }
-        catch (const std::exception&) {
-            std::cerr << "Invalid input. Please enter a positive integer.\n";
-        }
+        auto value = parseSeed(input);
+        if (!value) continue;
+        return value;
     }
 }
 
 std::optional<double> askForWallDensity() {
     std::string input;
     while (true) {
-        std::cout << "Enter wall density(probability that a cell will be a wall) (0.0 to 1.0): ";
+        std::cout << "Enter wall density(probability that a cell will be a wall) (0.0 to 100.0): ";
         if (!std::getline(std::cin, input)) {
             return std::nullopt;
         }
         if (input.empty()) {
-            double wallDensity = 0.3;// Default wall density
-            std::cout << "Using default wall density: " << wallDensity << '\n';
-            return wallDensity;
+            double defaultWallDensity = GenerationSettings{}.wallDensity;
+            std::cout << "Using default wall density: " << defaultWallDensity << '\n';
+            return defaultWallDensity;
         }
-
-        try {
-            std::size_t pos;//size of the string
-            double wallDensity = std::stod(input, &pos);
-            if (pos != input.size() || wallDensity < 0.0 || wallDensity > 1.0 || !std::isfinite(wallDensity)) {
-                throw std::invalid_argument("Invalid wall density");
-            }
-            std::cout << "Using density: " << wallDensity << '\n';
-            return wallDensity;
-
-        } catch (const std::exception&) {
-            std::cerr << "Invalid input. Please enter a number between 0.0 and 1.0.\n";
-            std::cin.clear();
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        }
+        auto value = parseDouble(input, minWallDensityRange, maxWallDensityRange);
+        if (!value) continue;
+        return value;
     }
 }
 
@@ -238,25 +208,14 @@ std::optional<double> askForMudCount() {
             return std::nullopt;
         }
         if (input.empty()) {
-            double mudCount = 10; // Default mud count
-            std::cout << "Using default mud count: " << mudCount << '\n';
-            return mudCount;
+            double defaultMudCount = GenerationSettings{}.mudCount;
+            std::cout << "Using default mud count: " << defaultMudCount << '\n';
+            return defaultMudCount;
         }
 
-        try {
-            std::size_t pos;
-            double mudCount = std::stod(input, &pos);
-            if (pos != input.size() || mudCount < 0.0 || mudCount > 100.0 || !std::isfinite(mudCount)) {
-                throw std::invalid_argument("Invalid mud count");
-            }
-            std::cout << "Using mud count: " << mudCount << '\n';
-            return mudCount;
-
-        } catch (const std::exception&) {
-            std::cerr << "Invalid input. Please enter a number between 0 and 100.\n";
-            std::cin.clear();
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        }
+        auto value = parseDouble(input, minBlobDensityRange, maxBlobDensityRange);
+        if (!value) continue;
+        return value;
     }
 }
 
@@ -268,24 +227,13 @@ std::optional<double> askForWaterCount() {
             return std::nullopt;
         }
         if (input.empty()) {
-            double waterCount = 10; // Default water count
-            std::cout << "Using default water count: " << waterCount << '\n';
-            return waterCount;
+            double defaultWaterCount = GenerationSettings{}.waterCount;
+            std::cout << "Using default water count: " << defaultWaterCount << '\n';
+            return defaultWaterCount;
         }
 
-        try {
-            std::size_t pos;
-            double waterCount = std::stod(input, &pos);
-            if (pos != input.size() || waterCount < 0.0 || waterCount > 100.0 || !std::isfinite(waterCount)) {
-                throw std::invalid_argument("Invalid water count");
-            }
-            std::cout << "Using water count: " << waterCount << '\n';
-            return waterCount;
-
-        } catch (const std::exception&) {
-            std::cerr << "Invalid input. Please enter a number between 0 and 100.\n";
-            std::cin.clear();
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        }
+        auto value = parseDouble(input, minBlobDensityRange, maxBlobDensityRange);
+        if (!value) continue;
+        return value;
     }
 }
