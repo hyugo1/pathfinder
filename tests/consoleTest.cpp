@@ -3,12 +3,21 @@
 
 #include <gtest/gtest.h>
 
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <streambuf>
+#include <optional>
+
 class CinRedirect {
 public:
     // Constructor: temporarily redirects std::cin
     explicit CinRedirect(std::istream& input)
         : oldBuffer(std::cin.rdbuf(input.rdbuf())) {}//input.rdbuf() gives the actual input content. std::cin.rdbuf replaces the buffer used by std::cin
 
+    CinRedirect(const CinRedirect&) = delete;
+    CinRedirect& operator=(const CinRedirect&) = delete;
+    
     // Destructor: restores the original std::cin
     ~CinRedirect() {
         std::cin.rdbuf(oldBuffer);
@@ -90,9 +99,7 @@ TEST(ConsoleTest, askForWallDensity_ReturnsCorrectInput) {
     
     CinRedirect redirect(input);
     
-    testing::internal::CaptureStdout();
-    std::optional<double> value = askForWallDensity();
-    std::string output = testing::internal::GetCapturedStdout();
+    auto value = askForWallDensity();
 
     ASSERT_TRUE(value.has_value());
     EXPECT_DOUBLE_EQ(value.value(), 4.0);
@@ -190,9 +197,7 @@ TEST(ConsoleTest, askForMudCount_ReturnsCorrectInput) {
     
     CinRedirect redirect(input);
     
-    testing::internal::CaptureStdout();
-    std::optional<double> value = askForMudCount();
-    std::string output = testing::internal::GetCapturedStdout();
+    auto value = askForMudCount();
 
     ASSERT_TRUE(value.has_value());
     EXPECT_DOUBLE_EQ(value.value(), 4.0);
@@ -289,9 +294,7 @@ TEST(ConsoleTest, askForWaterCount_ReturnsCorrectInput) {
     
     CinRedirect redirect(input);
     
-    testing::internal::CaptureStdout();
-    std::optional<double> value = askForWaterCount();
-    std::string output = testing::internal::GetCapturedStdout();
+    auto value = askForWaterCount();
 
     ASSERT_TRUE(value.has_value());
     EXPECT_DOUBLE_EQ(value.value(), 4.0);
