@@ -173,6 +173,7 @@ std::optional<unsigned int> askForSeed() {
         if (!std::getline(std::cin, input)) {
             return std::nullopt;
         }
+        input = trim(input);
         if (input.empty()) {
             return generateRandomSeed();
         }
@@ -189,6 +190,7 @@ std::optional<double> askForWallDensity() {
         if (!std::getline(std::cin, input)) {
             return std::nullopt;
         }
+        input = trim(input);
         if (input.empty()) {
             double defaultWallDensity = GenerationSettings{}.wallDensity;
             std::cout << "Using default wall density: " << defaultWallDensity << '\n';
@@ -207,6 +209,7 @@ std::optional<double> askForMudCount() {
         if (!std::getline(std::cin, input)) {
             return std::nullopt;
         }
+        input = trim(input);
         if (input.empty()) {
             double defaultMudCount = GenerationSettings{}.mudCount;
             std::cout << "Using default mud count: " << defaultMudCount << '\n';
@@ -226,6 +229,7 @@ std::optional<double> askForWaterCount() {
         if (!std::getline(std::cin, input)) {
             return std::nullopt;
         }
+        input = trim(input);
         if (input.empty()) {
             double defaultWaterCount = GenerationSettings{}.waterCount;
             std::cout << "Using default water count: " << defaultWaterCount << '\n';
