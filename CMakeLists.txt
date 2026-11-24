@@ -13,6 +13,9 @@ find_package(SFML 3 REQUIRED COMPONENTS System Window Graphics)
 add_library(pathfinder_lib
     src/grid.cpp
     src/algorithms.cpp
+    src/generator.cpp
+    src/console.cpp
+    src/input.cpp
 )
 
 target_include_directories(pathfinder_lib

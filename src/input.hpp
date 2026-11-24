@@ -34,3 +34,4 @@ std::optional<double> parseDouble(const std::string& input, double min, double m
 unsigned int generateRandomSeed();
 std::optional<unsigned int> parseSeed(const std::string& input);
 std::optional<ParsedInput> parseInput(InputLabel inputlabel, const std::string& inputstring);
+std::string trim(const std::string& input);
