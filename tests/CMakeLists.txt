@@ -13,6 +13,7 @@ add_executable(run_tests
     AlgorithmTest.cpp
     GeneratorTest.cpp
     ConsoleTest.cpp
+    InputTest.cpp
 )
 # Link GoogleTest and the project library.
 target_link_libraries(run_tests
