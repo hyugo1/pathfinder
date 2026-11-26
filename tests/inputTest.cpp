@@ -86,3 +86,53 @@ TEST(InputTest, parseDouble_OutOfRange_ReturnsNullopt) {
 
     EXPECT_NE(errorOutput.find("Input value is out of range."), std::string::npos);
 }
+
+
+// --- parseSeed() ---
+TEST(InputTest, parsedSeed_NegativeNumber_ReturnsNullopt) {
+    testing::internal::CaptureStderr();
+    auto value = parseSeed("-100");
+    std::string errorOutput = testing::internal::GetCapturedStderr();
+
+    EXPECT_FALSE(value.has_value());
+
+    EXPECT_NE(errorOutput.find("Invalid seed: "), std::string::npos);
+    
+    EXPECT_NE(errorOutput.find("Seed must contain digits only"),  std::string::npos);
+}
+
+TEST(InputTest, parseSeed_EmptyString_ReturnsNullOpt) {
+    auto value = parseSeed("");
+
+    EXPECT_EQ(value, std::nullopt);
+}
+
+TEST(InputTest, parseSeed_EmptySpaceString_ReturnsNullOpt) {
+    auto value = parseSeed(" ");
+
+    EXPECT_EQ(value, std::nullopt);
+}
+
+TEST(InputTest, parsedSeed_InvalidInput_ReturnsNullopt) {
+    testing::internal::CaptureStderr();
+    auto value = parseSeed("abc123");
+    std::string errorOutput = testing::internal::GetCapturedStderr();
+
+    EXPECT_FALSE(value.has_value());
+
+    EXPECT_NE(errorOutput.find("Invalid seed: "), std::string::npos);
+    
+    EXPECT_NE(errorOutput.find("Seed must contain digits only"),  std::string::npos);
+}
+
+TEST(InputTest, parseSeed_DoubleInput_ReturnsValue) {
+    auto value = parseSeed("50.5");
+
+    EXPECT_FALSE(value.has_value());
+}
+
+TEST(InputTest, parseSeed_NumberWithTrailingCharacters_ReturnsNullopt) {
+    auto value = parseSeed("50abc");
+
+    EXPECT_FALSE(value.has_value());
+}
